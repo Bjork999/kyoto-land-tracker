@@ -1,9 +1,9 @@
 name: Daily Scrape
 
 on:
-  schedule:
-    # 12:00 JST (03:00 UTC) and 17:00 JST (08:00 UTC)
-    - cron: '0 3,8 * * *'
+  # Cron disabled: user runs local update-kyoto.bat instead (athome/fudo block Actions IPs)
+  # schedule:
+  #   - cron: '0 3,8 * * *'
   workflow_dispatch:
 
 permissions:
