@@ -28,11 +28,15 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm install
+      - name: Install npm deps (Playwright auto-installs chromium via postinstall)
+        run: npm install
+
+      - name: Install Playwright system deps
+        run: npx playwright install-deps chromium
 
       - name: Run scraper
         run: npm run scrape
-        timeout-minutes: 25
+        timeout-minutes: 40
 
       - name: Commit updated HTML and known_ids
         run: |

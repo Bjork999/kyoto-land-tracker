@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// 京都市11区 + 八幡市 土地物件を SUUMO/athome/不動産ジャパン から取得
-// フィルタ・重複排除・ジオコード・OSRM運転時間・NEW検出・HTML生成
+// 京都市11区 + 八幡市 土地物件を SUUMO/athome/不動産ジャパン から Playwright で取得
 import { load as cheerioLoad } from 'cheerio';
+import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -16,35 +16,63 @@ const MIN_AREA_M2 = 109;
 const NEW_DAYS = 3;
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-const headers = { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-async function fetchHtml(url, retries = 2) {
-  for (let i = 0; i <= retries; i++) {
+// ============ Browser fetcher ============
+async function createFetcher() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    userAgent: UA,
+    viewport: { width: 1400, height: 900 },
+    locale: 'ja-JP',
+    timezoneId: 'Asia/Tokyo'
+  });
+  const page = await context.newPage();
+  // Block heavy resources we don't need (images, fonts) to speed up — but keep for sites where we extract img URLs from rendered DOM
+  await page.route('**/*', (route) => {
+    const t = route.request().resourceType();
+    if (['font', 'media'].includes(t)) return route.abort();
+    route.continue();
+  });
+
+  const fetchHtml = async (url, { scroll = false, waitFor = null, timeout = 30000 } = {}) => {
     try {
-      const r = await fetch(url, { headers, signal: AbortSignal.timeout(20000) });
-      if (r.ok) return await r.text();
-      if (r.status === 404) return null;
-    } catch (e) { /* retry */ }
-    await sleep(500 * (i + 1));
-  }
-  return null;
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+      try { await page.waitForLoadState('networkidle', { timeout: 10000 }); } catch {}
+      if (waitFor) { try { await page.waitForSelector(waitFor, { timeout: 8000 }); } catch {} }
+      if (scroll) {
+        // Scroll to trigger lazy-load
+        await page.evaluate(async () => {
+          await new Promise((resolve) => {
+            let y = 0;
+            const step = () => {
+              window.scrollTo(0, y);
+              y += 400;
+              if (y > document.body.scrollHeight) return resolve();
+              setTimeout(step, 100);
+            };
+            step();
+          });
+        });
+        await sleep(1500);
+      }
+      return await page.content();
+    } catch (e) {
+      console.error(`  fetch error ${url}:`, e.message);
+      return null;
+    }
+  };
+
+  const close = async () => { await browser.close(); };
+  return { fetchHtml, close };
 }
 
 // ============ SUUMO ============
 const SUUMO_WARDS = [
-  ['sc_kyotoshikita', '北区'],
-  ['sc_kyotoshikamigyo', '上京区'],
-  ['sc_kyotoshisakyo', '左京区'],
-  ['sc_kyotoshinakagyo', '中京区'],
-  ['sc_kyotoshihigashiyama', '東山区'],
-  ['sc_kyotoshishimogyo', '下京区'],
-  ['sc_kyotoshiminami', '南区'],
-  ['sc_kyotoshiukyo', '右京区'],
-  ['sc_kyotoshifushimi', '伏見区'],
-  ['sc_kyotoshiyamashina', '山科区'],
-  ['sc_kyotoshinishikyo', '西京区'],
-  ['sc_yawata', '八幡市']
+  ['sc_kyotoshikita', '北区'], ['sc_kyotoshikamigyo', '上京区'], ['sc_kyotoshisakyo', '左京区'],
+  ['sc_kyotoshinakagyo', '中京区'], ['sc_kyotoshihigashiyama', '東山区'], ['sc_kyotoshishimogyo', '下京区'],
+  ['sc_kyotoshiminami', '南区'], ['sc_kyotoshiukyo', '右京区'], ['sc_kyotoshifushimi', '伏見区'],
+  ['sc_kyotoshiyamashina', '山科区'], ['sc_kyotoshinishikyo', '西京区'], ['sc_yawata', '八幡市']
 ];
 
 function parsePriceMan(text) {
@@ -56,11 +84,11 @@ function parsePriceMan(text) {
   return null;
 }
 
-async function scrapeSuumo() {
+async function scrapeSuumo(fetcher) {
   const results = [];
   for (const [code, ward] of SUUMO_WARDS) {
     const base = `https://suumo.jp/tochi/kyoto/${code}/`;
-    const firstHtml = await fetchHtml(base);
+    const firstHtml = await fetcher.fetchHtml(base);
     if (!firstHtml) continue;
     const first$ = cheerioLoad(firstHtml);
     let maxPage = 1;
@@ -85,7 +113,7 @@ async function scrapeSuumo() {
         const areaM2 = areaMatch ? parseFloat(areaMatch[1].replace(/,/g, '')) : null;
         const tsubo = areaM2 ? +(areaM2 / 3.305785).toFixed(2) : null;
         const img = $el.find('img').first();
-        const imgUrl = img.attr('rel') || img.attr('data-original') || '';
+        const imgUrl = img.attr('rel') || img.attr('data-original') || img.attr('src') || '';
         const nameRaw = img.attr('alt') || '';
         const name = nameRaw.replace(/\s*[\d,]+万円\s*画像\d*\s*$/, '').trim() || null;
         const idMatch = href.match(/nc_(\d+)/);
@@ -96,41 +124,34 @@ async function scrapeSuumo() {
           tsuboUnit: tsuboMatch ? tsuboMatch[1] : null,
           location: locMatch ? locMatch[1].trim() : null,
           station: stnMatch ? stnMatch[1].trim() : null,
-          url: href, imgUrl
+          url: href,
+          imgUrl: imgUrl.startsWith('http') && !imgUrl.includes('data:') ? imgUrl : ''
         });
       });
     };
     extract(first$);
     for (let p = 2; p <= Math.min(maxPage, 25); p++) {
-      const h = await fetchHtml(`${base}?page=${p}`);
+      const h = await fetcher.fetchHtml(`${base}?page=${p}`);
       if (h) extract(cheerioLoad(h));
-      await sleep(200);
     }
+    console.log(`  SUUMO ${ward}: ${results.filter(r => r.ward === ward).length}件 (${maxPage}p)`);
   }
   return results;
 }
 
 // ============ athome ============
 const ATHOME_WARDS = [
-  ['kyoto_kita-city', '北区'],
-  ['kyoto_kamigyo-city', '上京区'],
-  ['kyoto_sakyo-city', '左京区'],
-  ['kyoto_nakagyo-city', '中京区'],
-  ['kyoto_higashiyama-city', '東山区'],
-  ['kyoto_shimogyo-city', '下京区'],
-  ['kyoto_minami-city', '南区'],
-  ['kyoto_ukyo-city', '右京区'],
-  ['kyoto_fushimi-city', '伏見区'],
-  ['kyoto_yamashina-city', '山科区'],
-  ['kyoto_nishikyo-city', '西京区'],
-  ['yawata-city', '八幡市']
+  ['kyoto_kita-city', '北区'], ['kyoto_kamigyo-city', '上京区'], ['kyoto_sakyo-city', '左京区'],
+  ['kyoto_nakagyo-city', '中京区'], ['kyoto_higashiyama-city', '東山区'], ['kyoto_shimogyo-city', '下京区'],
+  ['kyoto_minami-city', '南区'], ['kyoto_ukyo-city', '右京区'], ['kyoto_fushimi-city', '伏見区'],
+  ['kyoto_yamashina-city', '山科区'], ['kyoto_nishikyo-city', '西京区'], ['yawata-city', '八幡市']
 ];
 
-async function scrapeAthome() {
+async function scrapeAthome(fetcher) {
   const results = [];
   for (const [p, ward] of ATHOME_WARDS) {
     const base = `https://www.athome.co.jp/tochi/kyoto/${p}/list/`;
-    const firstHtml = await fetchHtml(base);
+    const firstHtml = await fetcher.fetchHtml(base, { scroll: true, waitFor: '.card-box' });
     if (!firstHtml) continue;
     const first$ = cheerioLoad(firstHtml);
     let maxPage = 1;
@@ -154,7 +175,6 @@ async function scrapeAthome() {
         const locMatch = text.match(/所在地\s*(京都[市府]?[^\s]+|八幡市[^\s]+)/) || text.match(/(京都市[^（\s]+|八幡市[^（\s]+)/);
         const stnMatch = text.match(/交通\s*(.+?)\s*所在地/);
         const tsuboUnitMatch = text.match(/坪単価\s*([\d,\.]+)\s*万円/);
-        // Try to get image - athome most images lazy-loaded (no URL in raw HTML for cards below fold)
         let imgUrl = '';
         $el.find('img').each((_, i) => {
           const src = $(i).attr('src') || '';
@@ -162,7 +182,6 @@ async function scrapeAthome() {
             imgUrl = src; return false;
           }
         });
-        // Title from .title-wrap
         const title = $el.find('.title-wrap').first().text().replace(/\s+/g, ' ').trim().slice(0, 80) || null;
         const idMatch = href.match(/\/tochi\/(\d+)/);
         const propId = idMatch ? `athome-${idMatch[1]}` : `athome-${href}`;
@@ -179,10 +198,10 @@ async function scrapeAthome() {
     };
     extract(first$);
     for (let p2 = 2; p2 <= Math.min(maxPage, 20); p2++) {
-      const h = await fetchHtml(`${base}page${p2}/`);
+      const h = await fetcher.fetchHtml(`${base}page${p2}/`, { scroll: true, waitFor: '.card-box' });
       if (h) extract(cheerioLoad(h));
-      await sleep(250);
     }
+    console.log(`  athome ${ward}: ${results.filter(r => r.ward === ward).length}件 (${maxPage}p)`);
   }
   return results;
 }
@@ -194,11 +213,11 @@ const FUDO_WARDS = [
   ['26109', '伏見区'], ['26110', '山科区'], ['26111', '西京区'], ['26210', '八幡市']
 ];
 
-async function scrapeFudousan() {
+async function scrapeFudousan(fetcher) {
   const results = [];
   for (const [code, ward] of FUDO_WARDS) {
     const base = `https://www.fudousan.or.jp/property/buy/26/area/list?ptm%5B%5D=0101&m_adr%5B%5D=${code}`;
-    const firstHtml = await fetchHtml(base);
+    const firstHtml = await fetcher.fetchHtml(base, { scroll: true, waitFor: '.list-group-item' });
     if (!firstHtml) continue;
     const first$ = cheerioLoad(firstHtml);
     let maxPage = 1;
@@ -222,15 +241,13 @@ async function scrapeFudousan() {
         const locMatch = text.match(/【売地】\s*(京都[市府][^\s周]+?|八幡市[^\s周]+?)(?=\s*周辺|\s*画像|$)/);
         const stnMatch = text.match(/(.+?(?:徒歩|バス)[\d]+分)(?=\s+\d|\s+[\d,]+万)/);
         const tsuboUnitMatch = text.match(/坪単価[^：:]*[：:]\s*([\d,]+)万/);
-        // 不動産ジャパン uses data-echo for lazy-loading
         const img = $el.find('img.prop-img, img').first();
         const imgUrl = img.attr('data-echo') || img.attr('data-src') || img.attr('src') || '';
-        const nameMatch = text.match(/【売地】\s*(京都[市府][^\s周]+?|八幡市[^\s周]+?)(?=\s*周辺|\s*画像|$)/);
         const idMatch = href.match(/\/show\/(\d+)|\/property\/(\d+)/);
         const propId = idMatch ? `fudo-${idMatch[1] || idMatch[2]}` : `fudo-${href}`;
         results.push({
           propId, source: '不動産ジャパン', ward,
-          name: nameMatch ? nameMatch[1].trim() : null,
+          name: locMatch ? locMatch[1].trim() : null,
           priceMan, areaM2, tsubo,
           tsuboUnit: tsuboUnitMatch ? tsuboUnitMatch[1].replace(/,/g, '') : null,
           location: locMatch ? locMatch[1].trim() : null,
@@ -242,10 +259,10 @@ async function scrapeFudousan() {
     };
     extract(first$);
     for (let p2 = 2; p2 <= Math.min(maxPage, 20); p2++) {
-      const h = await fetchHtml(`${base}&page=${p2}`);
+      const h = await fetcher.fetchHtml(`${base}&page=${p2}`, { scroll: true, waitFor: '.list-group-item' });
       if (h) extract(cheerioLoad(h));
-      await sleep(200);
     }
+    console.log(`  不動産ジャパン ${ward}: ${results.filter(r => r.ward === ward).length}件 (${maxPage}p)`);
   }
   return results;
 }
@@ -419,7 +436,6 @@ function buildHtml(items, newCount, timestamp) {
   td.link a.map { background: #6c757d; }
   .no-img { color: #bbb; font-size: 1.4em; }
   tr:hover { background: #fffbe6; }
-  .badge { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; }
   body.view-20 tr:not([data-bucket="20"]) { display: none; }
   body.view-25 tr[data-bucket="30"], body.view-25 tr[data-bucket="over"] { display: none; }
   body.view-30 tr[data-bucket="over"] { display: none; }
@@ -502,7 +518,8 @@ applyFavs(); setView('20');
 
 // ============ Main ============
 async function main() {
-  console.log(`[${new Date().toISOString()}] 開始`);
+  console.log(`[${new Date().toISOString()}] 開始 (Playwright版)`);
+  const fetcher = await createFetcher();
 
   let knownIds = {};
   try { knownIds = JSON.parse(await fs.readFile(KNOWN_IDS_PATH, 'utf-8')); } catch { knownIds = {}; }
@@ -510,14 +527,18 @@ async function main() {
   const cutoff = new Date(Date.now() - NEW_DAYS * 86400000).toISOString().slice(0, 10);
 
   console.log('→ SUUMO scraping...');
-  const suumo = await scrapeSuumo().catch(e => { console.error('SUUMO error:', e.message); return []; });
-  console.log(`  got ${suumo.length}`);
+  const suumo = await scrapeSuumo(fetcher).catch(e => { console.error('SUUMO error:', e.message); return []; });
+  console.log(`  SUUMO total: ${suumo.length}`);
+
   console.log('→ athome scraping...');
-  const athome = await scrapeAthome().catch(e => { console.error('athome error:', e.message); return []; });
-  console.log(`  got ${athome.length}`);
+  const athome = await scrapeAthome(fetcher).catch(e => { console.error('athome error:', e.message); return []; });
+  console.log(`  athome total: ${athome.length}`);
+
   console.log('→ 不動産ジャパン scraping...');
-  const fudo = await scrapeFudousan().catch(e => { console.error('fudo error:', e.message); return []; });
-  console.log(`  got ${fudo.length}`);
+  const fudo = await scrapeFudousan(fetcher).catch(e => { console.error('fudo error:', e.message); return []; });
+  console.log(`  不動産ジャパン total: ${fudo.length}`);
+
+  await fetcher.close();
 
   if (suumo.length + athome.length + fudo.length === 0) {
     console.error('全サイト失敗。既存HTMLを維持して終了。');
@@ -527,7 +548,6 @@ async function main() {
   let items = filterAndDedup(suumo, athome, fudo);
   console.log(`→ フィルタ&重複排除後: ${items.length}件`);
 
-  // Geocode + OSRM
   console.log('→ ジオコード + OSRM...');
   for (let i = 0; i < items.length; i++) {
     const x = items[i];
@@ -542,7 +562,6 @@ async function main() {
     if ((i+1) % 20 === 0) console.log(`  ${i+1}/${items.length}`);
   }
 
-  // NEW detection
   const newKnownIds = { ...knownIds };
   let newCount = 0;
   for (const x of items) {
@@ -557,7 +576,6 @@ async function main() {
     }
   }
 
-  // Sort: NEW first, then by price
   items.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0) || a.priceMan - b.priceMan);
 
   const timestamp = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });

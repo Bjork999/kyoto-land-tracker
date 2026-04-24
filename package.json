@@ -4,9 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "scrape": "node scripts/scrape.mjs"
+    "scrape": "node scripts/scrape.mjs",
+    "postinstall": "playwright install chromium"
   },
   "dependencies": {
-    "cheerio": "^1.0.0"
+    "cheerio": "^1.0.0",
+    "playwright": "^1.48.0"
   }
 }
