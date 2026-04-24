@@ -4,8 +4,9 @@ import { load as cheerioLoad } from 'cheerio';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_HTML = path.join(ROOT, 'index.html');
 const KNOWN_IDS_PATH = path.join(ROOT, 'known_ids.json');
 
@@ -18,23 +19,45 @@ const NEW_DAYS = 3;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ============ Browser fetcher ============
-async function createFetcher() {
+// ============ Fetchers ============
+// Plain Node fetch (fast, works for SUUMO/athome from residential IP)
+async function nodeFetch(url, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'ja,en-US;q=0.9' },
+        signal: AbortSignal.timeout(20000)
+      });
+      if (r.ok) return await r.text();
+      if (r.status === 404) return null;
+    } catch {}
+    await sleep(500 * (i + 1));
+  }
+  return null;
+}
+
+// Playwright fetcher (for 不動産ジャパン which requires full browser)
+async function createPwFetcher() {
   const browser = await chromium.launch({ headless: true });
-  let context = await browser.newContext({
+  const context = await browser.newContext({
     userAgent: UA,
     viewport: { width: 1400, height: 900 },
     locale: 'ja-JP',
     timezoneId: 'Asia/Tokyo'
   });
+  // Warm up: visit homepage once to establish session
+  try {
+    const warmup = await context.newPage();
+    await warmup.goto('https://www.fudousan.or.jp/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await sleep(1500);
+    await warmup.close();
+  } catch {}
 
-  const fetchHtml = async (url, { scroll = false, waitFor = null, timeout = 30000, fresh = false } = {}) => {
-    // Reload a fresh page for each call to avoid SPA state issues
+  const fetchHtml = async (url, { scroll = true, timeout = 30000 } = {}) => {
     const page = await context.newPage();
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-      try { await page.waitForLoadState('networkidle', { timeout: 12000 }); } catch {}
-      if (waitFor) { try { await page.waitForSelector(waitFor, { timeout: 10000 }); } catch {} }
+      try { await page.waitForLoadState('networkidle', { timeout: 10000 }); } catch {}
       if (scroll) {
         await page.evaluate(async () => {
           await new Promise((resolve) => {
@@ -48,7 +71,7 @@ async function createFetcher() {
             step();
           });
         });
-        await sleep(2000);
+        await sleep(1500);
       }
       const html = await page.content();
       await page.close();
@@ -81,11 +104,11 @@ function parsePriceMan(text) {
   return null;
 }
 
-async function scrapeSuumo(fetcher) {
+async function scrapeSuumo() {
   const results = [];
   for (const [code, ward] of SUUMO_WARDS) {
     const base = `https://suumo.jp/tochi/kyoto/${code}/`;
-    const firstHtml = await fetcher.fetchHtml(base);
+    const firstHtml = await nodeFetch(base);
     if (!firstHtml) continue;
     const first$ = cheerioLoad(firstHtml);
     let maxPage = 1;
@@ -128,7 +151,7 @@ async function scrapeSuumo(fetcher) {
     };
     extract(first$);
     for (let p = 2; p <= Math.min(maxPage, 25); p++) {
-      const h = await fetcher.fetchHtml(`${base}?page=${p}`);
+      const h = await nodeFetch(`${base}?page=${p}`);
       if (h) extract(cheerioLoad(h));
     }
     console.log(`  SUUMO ${ward}: ${results.filter(r => r.ward === ward).length}件 (${maxPage}p)`);
@@ -144,11 +167,11 @@ const ATHOME_WARDS = [
   ['kyoto_yamashina-city', '山科区'], ['kyoto_nishikyo-city', '西京区'], ['yawata-city', '八幡市']
 ];
 
-async function scrapeAthome(fetcher) {
+async function scrapeAthome() {
   const results = [];
   for (const [p, ward] of ATHOME_WARDS) {
     const base = `https://www.athome.co.jp/tochi/kyoto/${p}/list/`;
-    const firstHtml = await fetcher.fetchHtml(base, { scroll: true, waitFor: '.card-box' });
+    const firstHtml = await nodeFetch(base);
     if (!firstHtml) continue;
     const first$ = cheerioLoad(firstHtml);
     let maxPage = 1;
@@ -195,8 +218,9 @@ async function scrapeAthome(fetcher) {
     };
     extract(first$);
     for (let p2 = 2; p2 <= Math.min(maxPage, 20); p2++) {
-      const h = await fetcher.fetchHtml(`${base}page${p2}/`, { scroll: true, waitFor: '.card-box' });
+      const h = await nodeFetch(`${base}page${p2}/`);
       if (h) extract(cheerioLoad(h));
+      await sleep(200);
     }
     console.log(`  athome ${ward}: ${results.filter(r => r.ward === ward).length}件 (${maxPage}p)`);
   }
@@ -509,27 +533,33 @@ applyFavs(); setView('20');
 
 // ============ Main ============
 async function main() {
-  console.log(`[${new Date().toISOString()}] 開始 (Playwright版)`);
-  const fetcher = await createFetcher();
+  console.log(`[${new Date().toISOString()}] 開始 (Hybrid版: SUUMO/athome=Node, 不動産ジャパン=Playwright)`);
 
   let knownIds = {};
   try { knownIds = JSON.parse(await fs.readFile(KNOWN_IDS_PATH, 'utf-8')); } catch { knownIds = {}; }
   const today = new Date().toISOString().slice(0, 10);
   const cutoff = new Date(Date.now() - NEW_DAYS * 86400000).toISOString().slice(0, 10);
 
-  console.log('→ SUUMO scraping...');
-  const suumo = await scrapeSuumo(fetcher).catch(e => { console.error('SUUMO error:', e.message); return []; });
+  console.log('→ SUUMO scraping (Node fetch)...');
+  const suumo = await scrapeSuumo().catch(e => { console.error('SUUMO error:', e.message); return []; });
   console.log(`  SUUMO total: ${suumo.length}`);
 
-  console.log('→ athome scraping...');
-  const athome = await scrapeAthome(fetcher).catch(e => { console.error('athome error:', e.message); return []; });
+  console.log('→ athome scraping (Node fetch)...');
+  const athome = await scrapeAthome().catch(e => { console.error('athome error:', e.message); return []; });
   console.log(`  athome total: ${athome.length}`);
 
-  console.log('→ 不動産ジャパン scraping...');
-  const fudo = await scrapeFudousan(fetcher).catch(e => { console.error('fudo error:', e.message); return []; });
+  console.log('→ 不動産ジャパン scraping (Playwright)...');
+  let fudo = [];
+  let pwFetcher = null;
+  try {
+    pwFetcher = await createPwFetcher();
+    fudo = await scrapeFudousan(pwFetcher).catch(e => { console.error('fudo error:', e.message); return []; });
+  } catch (e) {
+    console.error('  Playwright launch failed, skipping fudo:', e.message);
+  } finally {
+    if (pwFetcher) await pwFetcher.close();
+  }
   console.log(`  不動産ジャパン total: ${fudo.length}`);
-
-  await fetcher.close();
 
   if (suumo.length + athome.length + fudo.length === 0) {
     console.error('全サイト失敗。既存HTMLを維持して終了。');
@@ -537,7 +567,29 @@ async function main() {
   }
 
   let items = filterAndDedup(suumo, athome, fudo);
-  console.log(`→ フィルタ&重複排除後: ${items.length}件`);
+  console.log(`→ フィルタ&重複排除後 (今回取得分): ${items.length}件`);
+
+  // Merge with snapshot: if any source got significantly fewer items than last snapshot,
+  // keep snapshot items (likely still valid listings, just blocked by rate limit)
+  const SNAPSHOT_PATH = path.join(ROOT, 'snapshot.json');
+  let snapshotItems = [];
+  try { snapshotItems = JSON.parse(await fs.readFile(SNAPSHOT_PATH, 'utf-8')); } catch {}
+  if (snapshotItems.length > 0) {
+    const currentIds = new Set(items.map(x => x.propId));
+    const srcCurrCount = (src) => items.filter(x => x.source === src).length;
+    const srcSnapCount = (src) => snapshotItems.filter(x => x.source === src).length;
+    for (const src of ['SUUMO', 'athome', '不動産ジャパン']) {
+      const curr = srcCurrCount(src);
+      const snap = srcSnapCount(src);
+      // If current scrape lost >= 30% of items for this source, merge snapshot items back
+      if (snap > 0 && curr < snap * 0.7) {
+        const recovered = snapshotItems.filter(x => x.source === src && !currentIds.has(x.propId));
+        items.push(...recovered);
+        console.log(`  ${src}: 今回${curr}件 < 前回${snap}件 → snapshot から${recovered.length}件復元`);
+      }
+    }
+  }
+  console.log(`→ snapshot マージ後: ${items.length}件`);
 
   console.log('→ ジオコード + OSRM...');
   for (let i = 0; i < items.length; i++) {
@@ -573,6 +625,9 @@ async function main() {
   const html = buildHtml(items, newCount, timestamp);
   await fs.writeFile(OUT_HTML, html, 'utf-8');
   await fs.writeFile(KNOWN_IDS_PATH, JSON.stringify(newKnownIds, null, 2), 'utf-8');
+  // Save snapshot for next run's merge logic
+  const SNAPSHOT_OUT = path.join(ROOT, 'snapshot.json');
+  await fs.writeFile(SNAPSHOT_OUT, JSON.stringify(items, null, 2), 'utf-8');
 
   console.log(`✓ 完了 | 合計${items.length}件 | 新着${newCount}件 | ${timestamp}`);
 }
