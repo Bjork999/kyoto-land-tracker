@@ -47,7 +47,13 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: daily update $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            # Retry push up to 3 times with rebase on conflict
+            for i in 1 2 3; do
+              if git push; then break; fi
+              echo "Push failed (try $i), rebasing..."
+              git pull --rebase --autostash
+              sleep 2
+            done
           fi
 
       - uses: actions/configure-pages@v5

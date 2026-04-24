@@ -21,49 +21,46 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // ============ Browser fetcher ============
 async function createFetcher() {
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
+  let context = await browser.newContext({
     userAgent: UA,
     viewport: { width: 1400, height: 900 },
     locale: 'ja-JP',
     timezoneId: 'Asia/Tokyo'
   });
-  const page = await context.newPage();
-  // Block heavy resources we don't need (images, fonts) to speed up — but keep for sites where we extract img URLs from rendered DOM
-  await page.route('**/*', (route) => {
-    const t = route.request().resourceType();
-    if (['font', 'media'].includes(t)) return route.abort();
-    route.continue();
-  });
 
-  const fetchHtml = async (url, { scroll = false, waitFor = null, timeout = 30000 } = {}) => {
+  const fetchHtml = async (url, { scroll = false, waitFor = null, timeout = 30000, fresh = false } = {}) => {
+    // Reload a fresh page for each call to avoid SPA state issues
+    const page = await context.newPage();
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-      try { await page.waitForLoadState('networkidle', { timeout: 10000 }); } catch {}
-      if (waitFor) { try { await page.waitForSelector(waitFor, { timeout: 8000 }); } catch {} }
+      try { await page.waitForLoadState('networkidle', { timeout: 12000 }); } catch {}
+      if (waitFor) { try { await page.waitForSelector(waitFor, { timeout: 10000 }); } catch {} }
       if (scroll) {
-        // Scroll to trigger lazy-load
         await page.evaluate(async () => {
           await new Promise((resolve) => {
             let y = 0;
             const step = () => {
               window.scrollTo(0, y);
-              y += 400;
-              if (y > document.body.scrollHeight) return resolve();
-              setTimeout(step, 100);
+              y += 500;
+              if (y > document.body.scrollHeight + 800) return resolve();
+              setTimeout(step, 120);
             };
             step();
           });
         });
-        await sleep(1500);
+        await sleep(2000);
       }
-      return await page.content();
+      const html = await page.content();
+      await page.close();
+      return html;
     } catch (e) {
       console.error(`  fetch error ${url}:`, e.message);
+      try { await page.close(); } catch {}
       return null;
     }
   };
 
-  const close = async () => { await browser.close(); };
+  const close = async () => { await context.close(); await browser.close(); };
   return { fetchHtml, close };
 }
 
