@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>京都市・八幡市 土地一覧 (多サイト統合・自動更新)</title>
+<style>
+  body { font-family: -apple-system, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; margin: 16px; background: #fafafa; color: #222; }
+  h1 { font-size: 1.3em; margin: 0 0 4px; }
+  .meta { color: #666; font-size: 0.85em; margin-bottom: 10px; line-height: 1.5; }
+  .meta a { color: #0a66c2; }
+  .notice { background: #fff3cd; border-left: 3px solid #f0ad4e; padding: 6px 10px; margin: 6px 0; font-size: 0.82em; color: #6a4d00; }
+  .new-highlight { background: #ffe4e1; border-left: 3px solid #d9534f; padding: 6px 10px; margin: 6px 0; font-size: 0.9em; color: #721c24; font-weight: 600; }
+  .tabs { display: flex; gap: 4px; margin: 10px 0; flex-wrap: wrap; align-items: center; }
+  .tab { padding: 8px 14px; background: #e9ecef; border: none; border-radius: 6px; cursor: pointer; font-size: 0.92em; font-weight: 600; color: #495057; }
+  .tab.active { background: #0a66c2; color: #fff; }
+  .tab.new-tab { background: #ffe4e1; color: #721c24; }
+  .tab.new-tab.active { background: #d9534f; color: #fff; }
+  .tab.fav-tab.active { background: #d9534f; }
+  .tab .c { display: inline-block; background: rgba(255,255,255,.25); padding: 1px 8px; border-radius: 10px; margin-left: 6px; font-size: 0.85em; }
+  .tab:not(.active) .c { background: rgba(0,0,0,.08); }
+  .clear-btn { margin-left: auto; padding: 6px 10px; background: #fff; border: 1px solid #d9534f; color: #d9534f; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+  .filters { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; align-items: center; font-size: 0.88em; }
+  .filters label { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-width: 1200px; }
+  th, td { padding: 7px 9px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; font-size: 0.9em; }
+  th { background: #f2f5f8; position: sticky; top: 0; font-weight: 600; z-index: 1; white-space: nowrap; }
+  td.fav { width: 36px; text-align: center; }
+  td.fav input { width: 20px; height: 20px; cursor: pointer; accent-color: #d9534f; }
+  tr.is-fav { background: #fff5f5; }
+  tr.is-fav td.fav { background: #fff0f0; }
+  tr[data-new="true"] { background: linear-gradient(90deg, #fff3f3 0%, #fff 40%); }
+  tr[data-new="true"] td.ward { background: #d9534f; color: #fff; }
+  .new-badge { display: inline-block; background: #d9534f; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 0.7em; margin-left: 4px; font-weight: 700; }
+  td.img img { width: 110px; height: 82px; object-fit: cover; border-radius: 4px; display: block; }
+  td.img { width: 120px; }
+  td.src { font-weight: 700; font-size: 0.78em; white-space: nowrap; padding: 4px 6px; border-radius: 4px; text-align: center; }
+  td.src.src-suumo { background: #fff4e6; color: #b85c00; }
+  td.src.src-athome { background: #e6f4ff; color: #0b62ab; }
+  td.src.src-fudo { background: #ebeffc; color: #3f51b5; }
+  td.price { font-weight: bold; color: #c0392b; text-align: right; white-space: nowrap; font-size: 1.08em; }
+  td.tsubo-col { font-weight: 700; color: #1e6091; text-align: right; white-space: nowrap; background: #eaf4fb; font-size: 1.03em; }
+  td.m2-col { text-align: right; white-space: nowrap; color: #666; font-size: 0.88em; }
+  td.dt { text-align: right; white-space: nowrap; font-weight: 700; font-size: 1.0em; }
+  td.dt.dt-very-near { background: #c3e6cb; color: #0f5132; }
+  td.dt.dt-near { background: #d4edda; color: #155724; }
+  td.dt.dt-mid { background: #fff3cd; color: #856404; }
+  td.dt.dt-far { background: #ffd5b4; color: #7a3e00; }
+  td.dt.dt-over { background: #f8d7da; color: #721c24; }
+  td.dt.dt-unknown { background: #e9ecef; color: #6c757d; }
+  td.dk { text-align: right; white-space: nowrap; color: #666; font-size: 0.86em; }
+  .u { font-size: 0.75em; color: #888; margin-left: 2px; font-weight: 400; }
+  td.ward { background: #f7f9fb; font-weight: 600; color: #2c3e50; white-space: nowrap; }
+  td.name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.loc, td.stn { max-width: 180px; font-size: 0.82em; color: #444; }
+  td.unit { white-space: nowrap; color: #555; font-size: 0.82em; text-align: right; }
+  td.link a { display: inline-block; background: #0a66c2; color: #fff; padding: 4px 7px; border-radius: 4px; text-decoration: none; white-space: nowrap; font-size: 0.8em; margin: 1px; }
+  td.link a.map { background: #6c757d; }
+  .no-img { color: #bbb; font-size: 1.4em; }
+  tr:hover { background: #fffbe6; }
+  .badge { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; }
+  body.view-20 tr:not([data-bucket="20"]) { display: none; }
+  body.view-25 tr[data-bucket="30"], body.view-25 tr[data-bucket="over"] { display: none; }
+  body.view-30 tr[data-bucket="over"] { display: none; }
+  body.view-fav tr:not(.is-fav) { display: none; }
+  body.view-new tr:not([data-new="true"]) { display: none; }
+  body.hide-suumo tr[data-src="SUUMO"], body.hide-athome tr[data-src="athome"], body.hide-fudo tr[data-src="不動産ジャパン"] { display: none; }
+  #empty-fav, #empty-new { display: none; padding: 40px; text-align: center; color: #888; background: #fff; border-radius: 8px; }
+  body.view-fav #empty-fav, body.view-new #empty-new { display: block; }
+  @media (max-width: 700px) {
+    body { margin: 8px; }
+    td.img img { width: 80px; height: 60px; }
+    td.img { width: 90px; }
+    th, td { padding: 5px; font-size: 0.82em; }
+  }
+</style>
+</head>
+<body>
+<h1>🏡 京都市・八幡市 土地一覧 (自動更新)</h1>
+<div class="meta">
+  条件: 33坪(109m²)以上・2000万円以下・居住用 | 価格安い順 | 起点: <strong>伏見区下鳥羽南円面田町52</strong><br>
+  ソース: <strong>SUUMO 83 + athome 4 + 不動産ジャパン 0 = 合計 87件</strong> | 更新: 2026/4/24 22:12:59
+</div>
+<div class="new-highlight">🆕 本日の新着: 87件 (過去3日以内の新規検出物件含む)</div>
+<div class="notice">⚠ 運転時間は OSRM 推定で渋滞・信号を含みません。各行「経路」で Google Maps の実時間を確認。❤ チェックで「お気に入り」タブに集約。</div>
+<div class="tabs">
+  <button class="tab" id="tab-all" onclick="setView('all')">全件 <span class="c">87</span></button>
+  <button class="tab active" id="tab-20" onclick="setView('20')">~20分 <span class="c">57</span></button>
+  <button class="tab" id="tab-25" onclick="setView('25')">~25分 <span class="c">67</span></button>
+  <button class="tab" id="tab-30" onclick="setView('30')">~30分 <span class="c">75</span></button>
+  <button class="tab new-tab" id="tab-new" onclick="setView('new')">🆕 新着 <span class="c">87</span></button>
+  <button class="tab fav-tab" id="tab-fav" onclick="setView('fav')">❤ お気に入り <span class="c" id="fav-count">0</span></button>
+  <button class="clear-btn" onclick="clearFavs()">お気に入り解除</button>
+</div>
+<div class="filters">ソース絞込:
+  <label><input type="checkbox" id="flt-suumo" checked> SUUMO</label>
+  <label><input type="checkbox" id="flt-athome" checked> athome</label>
+  <label><input type="checkbox" id="flt-fudo" checked> 不動産ジャパン</label>
+</div>
+<div id="empty-fav">❤ まだお気に入りなし。</div>
+<div id="empty-new">🆕 新着物件はありません。</div>
+<div class="table-wrap"><table>
+<thead><tr><th>❤</th><th>画像</th><th>元</th><th>区市</th><th>価格</th><th>坪数</th><th>m²</th><th>坪単価</th><th>運転</th><th>道のり</th><th>物件名</th><th>所在地</th><th>駅</th><th>リンク</th></tr></thead>
+<tbody>
+<tr data-bucket="over" data-pid="SUUMO-76976733" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76976733" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F733%2F76976733%2F76976733_0001.jpg&w=192&h=144" loading="lazy" alt="京北五本松町小山越 135万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">135<span class=u>万</span></td>
+  <td class="tsubo-col">56 <span class=u>坪</span></td>
+  <td class="m2-col">185.12 <span class=u>m²</span></td>
+  <td class="unit">2.5万/坪</td>
+  <td class="dt dt-over">37.7 分</td>
+  <td class="dk">37.83 <span class=u>km</span></td>
+  <td class="name">京北五本松町小山越 135万円 画像１</td>
+  <td class="loc">京都府京都市右京区京北五本松町小山越12</td>
+  <td class="stn">京北ふるさとバス「出口橋」徒歩3分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76976733/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.174911,135.62973&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-79155835" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79155835" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F835%2F79155835%2F79155835_0001.jpg&w=192&h=144" loading="lazy" alt="京北下弓削町狭間谷 330万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">330<span class=u>万</span></td>
+  <td class="tsubo-col">68.63 <span class=u>坪</span></td>
+  <td class="m2-col">226.88 <span class=u>m²</span></td>
+  <td class="unit">4.9万/坪</td>
+  <td class="dt dt-over">39.7 分</td>
+  <td class="dk">39.97 <span class=u>km</span></td>
+  <td class="name">京北下弓削町狭間谷 330万円 画像１</td>
+  <td class="loc">京都府京都市右京区京北下弓削町狭間谷</td>
+  <td class="stn">ＪＲ東海道本線「京都」バス97分停歩6分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_79155835/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.19128,135.627686&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77186105" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77186105" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F105%2F77186105%2F77186105_0001.jpg&w=192&h=144" loading="lazy" alt="大原野上里北ノ町 450万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">西京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">450<span class=u>万</span></td>
+  <td class="tsubo-col">66.83 <span class=u>坪</span></td>
+  <td class="m2-col">220.93 <span class=u>m²</span></td>
+  <td class="unit">6.8万/坪</td>
+  <td class="dt dt-very-near">12.9 分</td>
+  <td class="dk">8.46 <span class=u>km</span></td>
+  <td class="name">大原野上里北ノ町 450万円 画像１</td>
+  <td class="loc">京都府京都市西京区大原野上里北ノ町</td>
+  <td class="stn">阪急バス「上里」徒歩3分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_77186105/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.953766,135.681763&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-74648547" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-74648547" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F547%2F74648547%2F74648547_0005.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 590万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">590<span class=u>万</span></td>
+  <td class="tsubo-col">95.67 <span class=u>坪</span></td>
+  <td class="m2-col">316.27 <span class=u>m²</span></td>
+  <td class="unit">6.2万/坪</td>
+  <td class="dt dt-near">15.1 分</td>
+  <td class="dk">11.18 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 590万… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷64-40</td>
+  <td class="stn">京阪本線「橋本」徒歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_74648547/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.879341,135.688354&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="athome-6989886721" data-src="athome" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6989886721" aria-label="お気に入り"></td>
+  <td class="img"><span class=no-img>—</span></td>
+  <td class="src src-athome">athome</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">698<span class=u>万</span></td>
+  <td class="tsubo-col">36.91 <span class=u>坪</span></td>
+  <td class="m2-col">122 <span class=u>m²</span></td>
+  <td class="unit">18.92万/坪</td>
+  <td class="dt dt-mid">24.1 分</td>
+  <td class="dk">14.49 <span class=u>km</span></td>
+  <td class="name">(物件名なし)</td>
+  <td class="loc">京都市北区衣笠赤阪町</td>
+  <td class="stn">-</td>
+  <td class="link"><a href="https://www.athome.co.jp/tochi/6989886721/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.039658,135.721436&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-79219979" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79219979" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F979%2F79219979%2F79219979_0001.jpg&w=192&h=144" loading="lazy" alt="西賀茂蛙ケ谷 780万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">780<span class=u>万</span></td>
+  <td class="tsubo-col">270.13 <span class=u>坪</span></td>
+  <td class="m2-col">893 <span class=u>m²</span></td>
+  <td class="unit">2.9万/坪</td>
+  <td class="dt dt-far">29.5 分</td>
+  <td class="dk">17.33 <span class=u>km</span></td>
+  <td class="name">西賀茂蛙ケ谷 780万円 画像１</td>
+  <td class="loc">京都府京都市北区西賀茂蛙ケ谷</td>
+  <td class="stn">地下鉄烏丸線「北大路」バス23分停歩5分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_79219979/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076439,135.73732&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20396280" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20396280" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F280%2F20396280%2F20396280_0008.jpg&w=192&h=144" loading="lazy" alt="淀樋爪町 780万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">780<span class=u>万</span></td>
+  <td class="tsubo-col">43.05 <span class=u>坪</span></td>
+  <td class="m2-col">142.31 <span class=u>m²</span></td>
+  <td class="unit">18.2万/坪</td>
+  <td class="dt dt-very-near">6.3 分</td>
+  <td class="dk">3.73 <span class=u>km</span></td>
+  <td class="name">淀樋爪町 780万円 画像１</td>
+  <td class="loc">京都府京都市伏見区淀樋爪町</td>
+  <td class="stn">京阪本線「淀」バス6分停歩2分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20396280/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.91909,135.720413&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-75342743" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75342743" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F743%2F75342743%2F75342743_0005.jpg&w=192&h=144" loading="lazy" alt="大原野南春日町 780万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">西京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">780<span class=u>万</span></td>
+  <td class="tsubo-col">137.99 <span class=u>坪</span></td>
+  <td class="m2-col">456.18 <span class=u>m²</span></td>
+  <td class="unit">5.7万/坪</td>
+  <td class="dt dt-near">18.8 分</td>
+  <td class="dk">14.14 <span class=u>km</span></td>
+  <td class="name">大原野南春日町 780万円 画像１</td>
+  <td class="loc">京都府京都市西京区大原野南春日町</td>
+  <td class="stn">阪急京都線「東向日」バス20分停歩1分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_75342743/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.960644,135.637085&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-77960138" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77960138" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F138%2F77960138%2F77960138_0002.jpg&w=192&h=144" loading="lazy" alt="北白川中山町 850万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">850<span class=u>万</span></td>
+  <td class="tsubo-col">201.5 <span class=u>坪</span></td>
+  <td class="m2-col">666.13 <span class=u>m²</span></td>
+  <td class="unit">4.3万/坪</td>
+  <td class="dt dt-over">37.6 分</td>
+  <td class="dk">23.81 <span class=u>km</span></td>
+  <td class="name">北白川中山町 850万円 画像１</td>
+  <td class="loc">京都府京都市左京区北白川中山町</td>
+  <td class="stn">ＪＲ湖西線「大津京」バス28分停歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77960138/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.031574,135.821228&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-76067965" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76067965" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F965%2F76067965%2F76067965_0001.jpg&w=192&h=144" loading="lazy" alt="京北赤石町鳥ケ口 880万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">880<span class=u>万</span></td>
+  <td class="tsubo-col">562.48 <span class=u>坪</span></td>
+  <td class="m2-col">1859.44 <span class=u>m²</span></td>
+  <td class="unit">1.6万/坪</td>
+  <td class="dt dt-over">43.2 分</td>
+  <td class="dk">43.98 <span class=u>km</span></td>
+  <td class="name">京北赤石町鳥ケ口 880万円 画像１</td>
+  <td class="loc">京都府京都市右京区京北赤石町鳥ケ口</td>
+  <td class="stn">京北ふるさとバス・南丹市営バス「赤石」徒歩7分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76067965/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.207104,135.619949&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-72701188" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72701188" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F188%2F72701188%2F72701188_0005.jpg&w=192&h=144" loading="lazy" alt="桃山町泰長老（観月橋駅） 88… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">880<span class=u>万</span></td>
+  <td class="tsubo-col">46.59 <span class=u>坪</span></td>
+  <td class="m2-col">154 <span class=u>m²</span></td>
+  <td class="unit">18.9万/坪</td>
+  <td class="dt dt-very-near">4.9 分</td>
+  <td class="dk">3.24 <span class=u>km</span></td>
+  <td class="name">桃山町泰長老（観月橋駅） 88… 画像１</td>
+  <td class="loc">京都府京都市伏見区桃山町泰長老</td>
+  <td class="stn">京阪宇治線「観月橋」徒歩4分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_72701188/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.929886,135.771057&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20295315" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295315" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F315%2F20295315%2F20295315_0001.jpg&w=192&h=144" loading="lazy" alt="西野山桜ノ馬場町（椥辻駅） 8… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">880<span class=u>万</span></td>
+  <td class="tsubo-col">37.81 <span class=u>坪</span></td>
+  <td class="m2-col">125 <span class=u>m²</span></td>
+  <td class="unit">23.3万/坪</td>
+  <td class="dt dt-very-near">12.8 分</td>
+  <td class="dk">9.23 <span class=u>km</span></td>
+  <td class="name">西野山桜ノ馬場町（椥辻駅） 8… 画像１</td>
+  <td class="loc">京都府京都市山科区西野山桜ノ馬場町</td>
+  <td class="stn">地下鉄東西線「椥辻」徒歩27分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20295315/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.971077,135.795532&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78693716" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78693716" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F716%2F78693716%2F78693716_0001.jpg&w=192&h=144" loading="lazy" alt="桃山町正宗（ＪＲ藤森駅） 88… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">888<span class=u>万</span></td>
+  <td class="tsubo-col">51.43 <span class=u>坪</span></td>
+  <td class="m2-col">170 <span class=u>m²</span></td>
+  <td class="unit">17.3万/坪</td>
+  <td class="dt dt-very-near">5.4 分</td>
+  <td class="dk">4.3 <span class=u>km</span></td>
+  <td class="name">桃山町正宗（ＪＲ藤森駅） 88… 画像１</td>
+  <td class="loc">京都府京都市伏見区桃山町正宗</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩10分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78693716/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.943218,135.773773&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-77490935" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77490935" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F935%2F77490935%2F77490935_0002.jpg&w=192&h=144" loading="lazy" alt="梅ケ畑高鼻町（宇多野駅） 93… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">930<span class=u>万</span></td>
+  <td class="tsubo-col">45.38 <span class=u>坪</span></td>
+  <td class="m2-col">150 <span class=u>m²</span></td>
+  <td class="unit">20.5万/坪</td>
+  <td class="dt dt-mid">21.6 分</td>
+  <td class="dk">16.02 <span class=u>km</span></td>
+  <td class="name">梅ケ畑高鼻町（宇多野駅） 93… 画像１</td>
+  <td class="loc">京都府京都市右京区梅ケ畑高鼻町</td>
+  <td class="stn">京福電鉄北野線「宇多野」徒歩25分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_77490935/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.044086,135.689835&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-78323875" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78323875" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F875%2F78323875%2F78323875_0004.jpg&w=192&h=144" loading="lazy" alt="岩倉長谷町（岩倉駅） 950万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">950<span class=u>万</span></td>
+  <td class="tsubo-col">37 <span class=u>坪</span></td>
+  <td class="m2-col">122.31 <span class=u>m²</span></td>
+  <td class="unit">25.7万/坪</td>
+  <td class="dt dt-over">31.3 分</td>
+  <td class="dk">19.91 <span class=u>km</span></td>
+  <td class="name">岩倉長谷町（岩倉駅） 950万… 画像１</td>
+  <td class="loc">京都府京都市左京区岩倉長谷町124</td>
+  <td class="stn">叡山電鉄鞍馬線「岩倉」徒歩13分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78323875/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.078327,135.7892&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20407945" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20407945" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F945%2F20407945%2F20407945_0013.jpg&w=192&h=144" loading="lazy" alt="西野大鳥井町（東野駅） 980… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">980<span class=u>万</span></td>
+  <td class="tsubo-col">51.97 <span class=u>坪</span></td>
+  <td class="m2-col">171.79 <span class=u>m²</span></td>
+  <td class="unit">18.9万/坪</td>
+  <td class="dt dt-near">16.5 分</td>
+  <td class="dk">10.87 <span class=u>km</span></td>
+  <td class="name">西野大鳥井町（東野駅） 980… 画像１</td>
+  <td class="loc">京都府京都市山科区西野大鳥井町</td>
+  <td class="stn">地下鉄東西線「東野」徒歩18分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20407945/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.979366,135.805328&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20177605" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20177605" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F605%2F20177605%2F20177605_0027.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 980万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">980<span class=u>万</span></td>
+  <td class="tsubo-col">94.02 <span class=u>坪</span></td>
+  <td class="m2-col">310.8 <span class=u>m²</span></td>
+  <td class="unit">10.5万/坪</td>
+  <td class="dt dt-very-near">14.5 分</td>
+  <td class="dk">10.89 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 980万… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷</td>
+  <td class="stn">京阪本線「橋本」徒歩10分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20177605/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20298769" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20298769" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F769%2F20298769%2F20298769_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 980万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">980<span class=u>万</span></td>
+  <td class="tsubo-col">61.17 <span class=u>坪</span></td>
+  <td class="m2-col">202.22 <span class=u>m²</span></td>
+  <td class="unit">16.1万/坪</td>
+  <td class="dt dt-very-near">14.5 分</td>
+  <td class="dk">10.89 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 980万… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷</td>
+  <td class="stn">京阪本線「橋本」徒歩7分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20298769/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-76234216" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76234216" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F216%2F76234216%2F76234216_0011.jpg&w=192&h=144" loading="lazy" alt="大宮釈迦谷（北大路駅） 105… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1050<span class=u>万</span></td>
+  <td class="tsubo-col">38.13 <span class=u>坪</span></td>
+  <td class="m2-col">126.06 <span class=u>m²</span></td>
+  <td class="unit">27.6万/坪</td>
+  <td class="dt dt-over">32.1 分</td>
+  <td class="dk">17.71 <span class=u>km</span></td>
+  <td class="name">大宮釈迦谷（北大路駅） 105… 画像１</td>
+  <td class="loc">京都府京都市北区大宮釈迦谷</td>
+  <td class="stn">地下鉄烏丸線「北大路」徒歩41分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_76234216/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.065708,135.725266&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78727557" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78727557" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F557%2F78727557%2F78727557_0001.jpg&w=192&h=144" loading="lazy" alt="八幡五反田（石清水八幡宮駅） … 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1080<span class=u>万</span></td>
+  <td class="tsubo-col">35.22 <span class=u>坪</span></td>
+  <td class="m2-col">116.43 <span class=u>m²</span></td>
+  <td class="unit">30.7万/坪</td>
+  <td class="dt dt-very-near">13.5 分</td>
+  <td class="dk">10.87 <span class=u>km</span></td>
+  <td class="name">八幡五反田（石清水八幡宮駅） … 画像１</td>
+  <td class="loc">京都府八幡市八幡五反田</td>
+  <td class="stn">京阪本線「石清水八幡宮」徒歩25分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_78727557/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.87252,135.706131&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-75419634" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75419634" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F634%2F75419634%2F75419634_0001.jpg&w=192&h=144" loading="lazy" alt="上高野鐘突町（三宅八幡駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1100<span class=u>万</span></td>
+  <td class="tsubo-col">43.71 <span class=u>坪</span></td>
+  <td class="m2-col">144.49 <span class=u>m²</span></td>
+  <td class="unit">25.2万/坪</td>
+  <td class="dt dt-far">27.5 分</td>
+  <td class="dk">17.87 <span class=u>km</span></td>
+  <td class="name">上高野鐘突町（三宅八幡駅） 1… 画像１</td>
+  <td class="loc">京都府京都市左京区上高野鐘突町</td>
+  <td class="stn">叡山電鉄叡山本線「三宅八幡」徒歩2分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_75419634/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.061771,135.795532&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77831814" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77831814" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F814%2F77831814%2F77831814_0040.jpg&w=192&h=144" loading="lazy" alt="景勝町（伏見駅） 1100万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1100<span class=u>万</span></td>
+  <td class="tsubo-col">81.45 <span class=u>坪</span></td>
+  <td class="m2-col">269.27 <span class=u>m²</span></td>
+  <td class="unit">13.6万/坪</td>
+  <td class="dt dt-very-near">4.7 分</td>
+  <td class="dk">3.31 <span class=u>km</span></td>
+  <td class="name">景勝町（伏見駅） 1100万円 画像１</td>
+  <td class="loc">京都府京都市伏見区景勝町</td>
+  <td class="stn">近鉄京都線「伏見」徒歩13分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_77831814/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944145,135.755875&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-78458499" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78458499" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F499%2F78458499%2F78458499_0001.jpg&w=192&h=144" loading="lazy" alt="衣笠氷室町（等持院・立命館大学… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1180<span class=u>万</span></td>
+  <td class="tsubo-col">49.97 <span class=u>坪</span></td>
+  <td class="m2-col">165.2 <span class=u>m²</span></td>
+  <td class="unit">23.7万/坪</td>
+  <td class="dt dt-mid">23 分</td>
+  <td class="dk">14.07 <span class=u>km</span></td>
+  <td class="name">衣笠氷室町（等持院・立命館大学… 画像１</td>
+  <td class="loc">京都府京都市北区衣笠氷室町</td>
+  <td class="stn">京福電鉄北野線「等持院・立命館大学衣笠キャンパス前」徒歩25分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_78458499/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.040222,135.725784&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20346057" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20346057" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F057%2F20346057%2F20346057_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1180… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1180<span class=u>万</span></td>
+  <td class="tsubo-col">40.25 <span class=u>坪</span></td>
+  <td class="m2-col">133.07 <span class=u>m²</span></td>
+  <td class="unit">29.4万/坪</td>
+  <td class="dt dt-very-near">14.5 分</td>
+  <td class="dk">10.89 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 1180… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷</td>
+  <td class="stn">京阪本線「橋本」徒歩6分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20346057/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20090776" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20090776" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F776%2F20090776%2F20090776_0001.jpg&w=192&h=144" loading="lazy" alt="戸津北小路 1200万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1200<span class=u>万</span></td>
+  <td class="tsubo-col">161.84 <span class=u>坪</span></td>
+  <td class="m2-col">535 <span class=u>m²</span></td>
+  <td class="unit">7.5万/坪</td>
+  <td class="dt dt-very-near">12.5 分</td>
+  <td class="dk">8.93 <span class=u>km</span></td>
+  <td class="name">戸津北小路 1200万円 画像１</td>
+  <td class="loc">京都府八幡市戸津北小路98-1</td>
+  <td class="stn">京阪本線「樟葉」バス13分停歩20分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20090776/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.866795,135.717941&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="athome-6983983063" data-src="athome" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6983983063" aria-label="お気に入り"></td>
+  <td class="img"><span class=no-img>—</span></td>
+  <td class="src src-athome">athome</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1200<span class=u>万</span></td>
+  <td class="tsubo-col">47.49 <span class=u>坪</span></td>
+  <td class="m2-col">157 <span class=u>m²</span></td>
+  <td class="unit">25.27万/坪</td>
+  <td class="dt dt-far">27.8 分</td>
+  <td class="dk">16.3 <span class=u>km</span></td>
+  <td class="name">(物件名なし)</td>
+  <td class="loc">京都市北区西賀茂今原町</td>
+  <td class="stn">-</td>
+  <td class="link"><a href="https://www.athome.co.jp/tochi/6983983063/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.064064,135.739517&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20174222" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20174222" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F222%2F20174222%2F20174222_0017.jpg&w=192&h=144" loading="lazy" alt="羽束師鴨川町 1274万円～1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1274<span class=u>万</span></td>
+  <td class="tsubo-col">33.32 <span class=u>坪</span></td>
+  <td class="m2-col">110.16 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-very-near">5.5 分</td>
+  <td class="dk">2.64 <span class=u>km</span></td>
+  <td class="name">羽束師鴨川町 1274万円～1… 画像１</td>
+  <td class="loc">京都府京都市伏見区羽束師鴨川町</td>
+  <td class="stn">京都市バス「久我の杜」徒歩5分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20174222/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.933929,135.734116&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20295377" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295377" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F377%2F20295377%2F20295377_0009.jpg&w=192&h=144" loading="lazy" alt="上花山講田町（御陵駅） 128… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1280<span class=u>万</span></td>
+  <td class="tsubo-col">37.89 <span class=u>坪</span></td>
+  <td class="m2-col">125.25 <span class=u>m²</span></td>
+  <td class="unit">33.8万/坪</td>
+  <td class="dt dt-near">16.2 分</td>
+  <td class="dk">10.77 <span class=u>km</span></td>
+  <td class="name">上花山講田町（御陵駅） 128… 画像１</td>
+  <td class="loc">京都府京都市山科区上花山講田町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩24分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20295377/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.984013,135.797668&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77510614" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77510614" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F614%2F77510614%2F77510614_0001.jpg&w=192&h=144" loading="lazy" alt="上花山講田町（御陵駅） 128… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1280<span class=u>万</span></td>
+  <td class="tsubo-col">37.89 <span class=u>坪</span></td>
+  <td class="m2-col">125.25 <span class=u>m²</span></td>
+  <td class="unit">33.8万/坪</td>
+  <td class="dt dt-near">16.2 分</td>
+  <td class="dk">10.77 <span class=u>km</span></td>
+  <td class="name">上花山講田町（御陵駅） 128… 画像１</td>
+  <td class="loc">京都府京都市山科区上花山講田町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩23分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_77510614/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.984013,135.797668&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78577090" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78577090" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F090%2F78577090%2F78577090_0018.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷東古御香町（ＪＲ藤森… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1298<span class=u>万</span></td>
+  <td class="tsubo-col">35.59 <span class=u>坪</span></td>
+  <td class="m2-col">117.66 <span class=u>m²</span></td>
+  <td class="unit">36.5万/坪</td>
+  <td class="dt dt-very-near">7.5 分</td>
+  <td class="dk">5.55 <span class=u>km</span></td>
+  <td class="name">深草大亀谷東古御香町（ＪＲ藤森… 画像１</td>
+  <td class="loc">京都府京都市伏見区深草大亀谷東古御香町</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩18分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78577090/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944279,135.787109&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20596384" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20596384" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F384%2F20596384%2F20596384_0001.jpg&w=192&h=144" loading="lazy" alt="北花山河原町（御陵駅） 129… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1298<span class=u>万</span></td>
+  <td class="tsubo-col">37.17 <span class=u>坪</span></td>
+  <td class="m2-col">122.87 <span class=u>m²</span></td>
+  <td class="unit">35.0万/坪</td>
+  <td class="dt dt-near">16.8 分</td>
+  <td class="dk">11.33 <span class=u>km</span></td>
+  <td class="name">北花山河原町（御陵駅） 129… 画像１</td>
+  <td class="loc">京都府京都市山科区北花山河原町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩15分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20596384/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.988583,135.800888&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-76738724" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76738724" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F724%2F76738724%2F76738724_0180.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン梅津罧原町2期 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1300<span class=u>万</span></td>
+  <td class="tsubo-col">35.05 <span class=u>坪</span></td>
+  <td class="m2-col">115.86 <span class=u>m²</span></td>
+  <td class="unit">37.1万/坪</td>
+  <td class="dt dt-near">18.7 分</td>
+  <td class="dk">12.84 <span class=u>km</span></td>
+  <td class="name">ドリームタウン梅津罧原町2期 画像１</td>
+  <td class="loc">京都府京都市右京区梅津罧原町14-10</td>
+  <td class="stn">阪急嵐山線「松尾大社」徒歩12分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76738724/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.004875,135.691711&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-78123413" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78123413" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F413%2F78123413%2F78123413_0014.jpg&w=192&h=144" loading="lazy" alt="上高野隣好町（三宅八幡駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1330<span class=u>万</span></td>
+  <td class="tsubo-col">33.28 <span class=u>坪</span></td>
+  <td class="m2-col">110 <span class=u>m²</span></td>
+  <td class="unit">40.0万/坪</td>
+  <td class="dt dt-far">27 分</td>
+  <td class="dk">17.68 <span class=u>km</span></td>
+  <td class="name">上高野隣好町（三宅八幡駅） 1… 画像１</td>
+  <td class="loc">京都府京都市左京区上高野隣好町</td>
+  <td class="stn">叡山電鉄叡山本線「三宅八幡」徒歩1分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78123413/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.062,135.794464&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20623443" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20623443" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F443%2F20623443%2F20623443_0019.jpg&w=192&h=144" loading="lazy" alt="横大路東裏町（中書島駅） 13… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1350<span class=u>万</span></td>
+  <td class="tsubo-col">34.76 <span class=u>坪</span></td>
+  <td class="m2-col">114.9 <span class=u>m²</span></td>
+  <td class="unit">38.9万/坪</td>
+  <td class="dt dt-very-near">1.4 分</td>
+  <td class="dk">0.62 <span class=u>km</span></td>
+  <td class="name">横大路東裏町（中書島駅） 13… 画像１</td>
+  <td class="loc">京都府京都市伏見区横大路東裏町</td>
+  <td class="stn">京阪本線「中書島」徒歩22分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20623443/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.92897,135.736389&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20570692" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20570692" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F692%2F20570692%2F20570692_0054.jpg&w=192&h=144" loading="lazy" alt="京都市伏見区深草大亀谷万帖敷町 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1380<span class=u>万</span></td>
+  <td class="tsubo-col">35.55 <span class=u>坪</span></td>
+  <td class="m2-col">117.53 <span class=u>m²</span></td>
+  <td class="unit">38.9万/坪</td>
+  <td class="dt dt-very-near">6.4 分</td>
+  <td class="dk">4.92 <span class=u>km</span></td>
+  <td class="name">京都市伏見区深草大亀谷万帖敷町 画像１</td>
+  <td class="loc">京都府京都市伏見区深草大亀谷万帖敷町</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20570692/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20427702" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20427702" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F702%2F20427702%2F20427702_0008.jpg&w=192&h=144" loading="lazy" alt="深草馬谷町（藤森駅） 1380… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1380<span class=u>万</span></td>
+  <td class="tsubo-col">40.96 <span class=u>坪</span></td>
+  <td class="m2-col">135.4 <span class=u>m²</span></td>
+  <td class="unit">33.7万/坪</td>
+  <td class="dt dt-very-near">11.6 分</td>
+  <td class="dk">6.71 <span class=u>km</span></td>
+  <td class="name">深草馬谷町（藤森駅） 1380… 画像１</td>
+  <td class="loc">京都府京都市伏見区深草馬谷町</td>
+  <td class="stn">京阪本線「藤森」徒歩20分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20427702/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.956123,135.78688&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-76762983" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76762983" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F983%2F76762983%2F76762983_0011.jpg&w=192&h=144" loading="lazy" alt="橋本新石（橋本駅） 1380万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1380<span class=u>万</span></td>
+  <td class="tsubo-col">45.53 <span class=u>坪</span></td>
+  <td class="m2-col">150.51 <span class=u>m²</span></td>
+  <td class="unit">30.4万/坪</td>
+  <td class="dt dt-near">15.9 分</td>
+  <td class="dk">12.15 <span class=u>km</span></td>
+  <td class="name">橋本新石（橋本駅） 1380万… 画像１</td>
+  <td class="loc">京都府八幡市橋本新石</td>
+  <td class="stn">京阪本線「橋本」徒歩15分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_76762983/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.875061,135.68869&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78314845" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78314845" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F845%2F78314845%2F78314845_0045.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン日野野色町 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1400<span class=u>万</span></td>
+  <td class="tsubo-col">36.44 <span class=u>坪</span></td>
+  <td class="m2-col">120.46 <span class=u>m²</span></td>
+  <td class="unit">38.5万/坪</td>
+  <td class="dt dt-very-near">11.5 分</td>
+  <td class="dk">7.81 <span class=u>km</span></td>
+  <td class="name">ドリームタウン日野野色町 画像１</td>
+  <td class="loc">京都府京都市伏見区日野野色町1-3、2-3</td>
+  <td class="stn">地下鉄東西線「石田」徒歩20分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78314845/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.931744,135.814331&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-77763234" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77763234" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F234%2F77763234%2F77763234_0014.jpg&w=192&h=144" loading="lazy" alt="大原大長瀬町 1480万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1480<span class=u>万</span></td>
+  <td class="tsubo-col">111.89 <span class=u>坪</span></td>
+  <td class="m2-col">369.88 <span class=u>m²</span></td>
+  <td class="unit">13.3万/坪</td>
+  <td class="dt dt-over">44.4 分</td>
+  <td class="dk">26.52 <span class=u>km</span></td>
+  <td class="name">大原大長瀬町 1480万円 画像１</td>
+  <td class="loc">京都府京都市左京区大原大長瀬町</td>
+  <td class="stn">地下鉄烏丸線「国際会館」バス22分停歩2分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77763234/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.113777,135.836578&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20296197" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20296197" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F197%2F20296197%2F20296197_0001.jpg&w=192&h=144" loading="lazy" alt="横大路東裏町（中書島駅） 14… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1480<span class=u>万</span></td>
+  <td class="tsubo-col">39 <span class=u>坪</span></td>
+  <td class="m2-col">128.92 <span class=u>m²</span></td>
+  <td class="unit">38.0万/坪</td>
+  <td class="dt dt-very-near">1.4 分</td>
+  <td class="dk">0.62 <span class=u>km</span></td>
+  <td class="name">横大路東裏町（中書島駅） 14… 画像１</td>
+  <td class="loc">京都府京都市伏見区横大路東裏町</td>
+  <td class="stn">京阪本線「中書島」徒歩32分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20296197/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.92897,135.736389&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20477829" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20477829" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F829%2F20477829%2F20477829_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1480… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1480<span class=u>万</span></td>
+  <td class="tsubo-col">45.8 <span class=u>坪</span></td>
+  <td class="m2-col">151.4 <span class=u>m²</span></td>
+  <td class="unit">32.4万/坪</td>
+  <td class="dt dt-very-near">14.5 分</td>
+  <td class="dk">10.89 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 1480… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷</td>
+  <td class="stn">京阪本線「橋本」徒歩6分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20477829/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20703840" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20703840" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F840%2F20703840%2F20703840_0002.jpg&w=192&h=144" loading="lazy" alt="川口西扇（石清水八幡宮駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1480<span class=u>万</span></td>
+  <td class="tsubo-col">40.91 <span class=u>坪</span></td>
+  <td class="m2-col">135.24 <span class=u>m²</span></td>
+  <td class="unit">36.2万/坪</td>
+  <td class="dt dt-very-near">12.3 分</td>
+  <td class="dk">9.27 <span class=u>km</span></td>
+  <td class="name">川口西扇（石清水八幡宮駅） 1… 画像１</td>
+  <td class="loc">京都府八幡市川口西扇</td>
+  <td class="stn">京阪本線「石清水八幡宮」徒歩27分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20703840/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.876987,135.716568&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-20222575" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20222575" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F575%2F20222575%2F20222575_0011.jpg&w=192&h=144" loading="lazy" alt="紫竹西野山町（北大路駅） 15… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1580<span class=u>万</span></td>
+  <td class="tsubo-col">36 <span class=u>坪</span></td>
+  <td class="m2-col">119 <span class=u>m²</span></td>
+  <td class="unit">43.9万/坪</td>
+  <td class="dt dt-mid">24.8 分</td>
+  <td class="dk">15.16 <span class=u>km</span></td>
+  <td class="name">紫竹西野山町（北大路駅） 15… 画像１</td>
+  <td class="loc">京都府京都市北区紫竹西野山町</td>
+  <td class="stn">地下鉄烏丸線「北大路」徒歩28分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_20222575/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.050179,135.740677&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-78928721" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78928721" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F721%2F78928721%2F78928721_0001.jpg&w=192&h=144" loading="lazy" alt="大原小出石町 1580万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1580<span class=u>万</span></td>
+  <td class="tsubo-col">101.76 <span class=u>坪</span></td>
+  <td class="m2-col">336.4 <span class=u>m²</span></td>
+  <td class="unit">15.6万/坪</td>
+  <td class="dt dt-over">48.2 分</td>
+  <td class="dk">30.69 <span class=u>km</span></td>
+  <td class="name">大原小出石町 1580万円 画像１</td>
+  <td class="loc">京都府京都市左京区大原小出石町</td>
+  <td class="stn">叡山電鉄叡山本線「八瀬比叡山口」バス28分停歩1分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78928721/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.159012,135.829376&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-76387009" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76387009" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F009%2F76387009%2F76387009_0001.jpg&w=192&h=144" loading="lazy" alt="今熊野南谷町（鳥羽街道駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">東山区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1580<span class=u>万</span></td>
+  <td class="tsubo-col">136.56 <span class=u>坪</span></td>
+  <td class="m2-col">451.43 <span class=u>m²</span></td>
+  <td class="unit">11.6万/坪</td>
+  <td class="dt dt-very-near">14.6 分</td>
+  <td class="dk">9.09 <span class=u>km</span></td>
+  <td class="name">今熊野南谷町（鳥羽街道駅） 1… 画像１</td>
+  <td class="loc">京都府京都市東山区今熊野南谷町</td>
+  <td class="stn">京阪本線「鳥羽街道」徒歩16分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshihigashiyama/nc_76387009/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.975647,135.778595&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78950899" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78950899" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F899%2F78950899%2F78950899_0001.jpg&w=192&h=144" loading="lazy" alt="西野後藤（椥辻駅） 1580万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1580<span class=u>万</span></td>
+  <td class="tsubo-col">38.67 <span class=u>坪</span></td>
+  <td class="m2-col">127.85 <span class=u>m²</span></td>
+  <td class="unit">40.9万/坪</td>
+  <td class="dt dt-near">15.3 分</td>
+  <td class="dk">10.43 <span class=u>km</span></td>
+  <td class="name">西野後藤（椥辻駅） 1580万… 画像１</td>
+  <td class="loc">京都府京都市山科区西野後藤</td>
+  <td class="stn">地下鉄東西線「椥辻」徒歩21分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_78950899/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.976921,135.803543&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="athome-1052392061" data-src="athome" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1052392061" aria-label="お気に入り"></td>
+  <td class="img"><span class=no-img>—</span></td>
+  <td class="src src-athome">athome</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1580<span class=u>万</span></td>
+  <td class="tsubo-col">101 <span class=u>坪</span></td>
+  <td class="m2-col">333.88 <span class=u>m²</span></td>
+  <td class="unit">15.65万/坪</td>
+  <td class="dt dt-over">32.1 分</td>
+  <td class="dk">17.71 <span class=u>km</span></td>
+  <td class="name">(物件名なし)</td>
+  <td class="loc">京都市北区大宮釈迦谷</td>
+  <td class="stn">-</td>
+  <td class="link"><a href="https://www.athome.co.jp/tochi/1052392061/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.065708,135.725266&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-75157690" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75157690" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F690%2F75157690%2F75157690_0001.jpg&w=192&h=144" loading="lazy" alt="鷹峯旧土居町 1600万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1600<span class=u>万</span></td>
+  <td class="tsubo-col">50 <span class=u>坪</span></td>
+  <td class="m2-col">165.28 <span class=u>m²</span></td>
+  <td class="unit">32.1万/坪</td>
+  <td class="dt dt-mid">24.2 分</td>
+  <td class="dk">14.55 <span class=u>km</span></td>
+  <td class="name">鷹峯旧土居町 1600万円 画像１</td>
+  <td class="loc">京都府京都市北区鷹峯旧土居町</td>
+  <td class="stn">地下鉄烏丸線「北大路」バス16分停歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_75157690/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.046505,135.736099&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77653512" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77653512" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F512%2F77653512%2F77653512_0001.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1680<span class=u>万</span></td>
+  <td class="tsubo-col">46.28 <span class=u>坪</span></td>
+  <td class="m2-col">152.99 <span class=u>m²</span></td>
+  <td class="unit">36.4万/坪</td>
+  <td class="dt dt-very-near">6.4 分</td>
+  <td class="dk">4.92 <span class=u>km</span></td>
+  <td class="name">深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１</td>
+  <td class="loc">京都府京都市伏見区深草大亀谷万帖敷町</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_77653512/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20108720" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20108720" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F720%2F20108720%2F20108720_0037.jpg&w=192&h=144" loading="lazy" alt="醍醐落保町（醍醐駅） 1764… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1764<span class=u>万</span></td>
+  <td class="tsubo-col">39.48 <span class=u>坪</span></td>
+  <td class="m2-col">130.5 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-very-near">11.4 分</td>
+  <td class="dk">8.47 <span class=u>km</span></td>
+  <td class="name">醍醐落保町（醍醐駅） 1764… 画像１</td>
+  <td class="loc">京都府京都市伏見区醍醐落保町33</td>
+  <td class="stn">地下鉄東西線「醍醐」徒歩13分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20108720/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.948662,135.819077&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20487276" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20487276" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F276%2F20487276%2F20487276_0036.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1780<span class=u>万</span></td>
+  <td class="tsubo-col">43.35 <span class=u>坪</span></td>
+  <td class="m2-col">143.3 <span class=u>m²</span></td>
+  <td class="unit">41.1万/坪</td>
+  <td class="dt dt-very-near">6.4 分</td>
+  <td class="dk">4.92 <span class=u>km</span></td>
+  <td class="name">深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１</td>
+  <td class="loc">京都府京都市伏見区深草大亀谷万帖敷町</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩7分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20487276/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-79180984" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79180984" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F984%2F79180984%2F79180984_0008.jpg&w=192&h=144" loading="lazy" alt="久我御旅町 1780万円～19… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1780<span class=u>万</span></td>
+  <td class="tsubo-col">34.84 <span class=u>坪</span></td>
+  <td class="m2-col">115.18 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-very-near">6.3 分</td>
+  <td class="dk">3.68 <span class=u>km</span></td>
+  <td class="name">久我御旅町 1780万円～19… 画像１</td>
+  <td class="loc">京都府京都市伏見区久我御旅町</td>
+  <td class="stn">近鉄京都線「竹田」バス20分停歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_79180984/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.942814,135.731094&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-76254187" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76254187" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F187%2F76254187%2F76254187_0016.jpg&w=192&h=144" loading="lazy" alt="川田菱尾田（椥辻駅） 1780… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1780<span class=u>万</span></td>
+  <td class="tsubo-col">37.29 <span class=u>坪</span></td>
+  <td class="m2-col">123.26 <span class=u>m²</span></td>
+  <td class="unit">47.8万/坪</td>
+  <td class="dt dt-very-near">14.7 分</td>
+  <td class="dk">10.04 <span class=u>km</span></td>
+  <td class="name">川田菱尾田（椥辻駅） 1780… 画像１</td>
+  <td class="loc">京都府京都市山科区川田菱尾田</td>
+  <td class="stn">地下鉄東西線「椥辻」徒歩24分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_76254187/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.977695,135.79866&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20110733" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20110733" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F733%2F20110733%2F20110733_0014.jpg&w=192&h=144" loading="lazy" alt="美濃山御幸（松井山手駅） 17… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1780<span class=u>万</span></td>
+  <td class="tsubo-col">38.06 <span class=u>坪</span></td>
+  <td class="m2-col">125.83 <span class=u>m²</span></td>
+  <td class="unit">46.8万/坪</td>
+  <td class="dt dt-very-near">15 分</td>
+  <td class="dk">10.42 <span class=u>km</span></td>
+  <td class="name">美濃山御幸（松井山手駅） 17… 画像１</td>
+  <td class="loc">京都府八幡市美濃山御幸</td>
+  <td class="stn">ＪＲ片町線「松井山手」徒歩39分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20110733/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.852253,135.713257&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20670407" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20670407" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F407%2F20670407%2F20670407_0001.jpg&w=192&h=144" loading="lazy" alt="久我東町 1798万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1798<span class=u>万</span></td>
+  <td class="tsubo-col">35.7 <span class=u>坪</span></td>
+  <td class="m2-col">118.01 <span class=u>m²</span></td>
+  <td class="unit">50.4万/坪</td>
+  <td class="dt dt-very-near">5.3 分</td>
+  <td class="dk">2.86 <span class=u>km</span></td>
+  <td class="name">久我東町 1798万円 画像１</td>
+  <td class="loc">京都府京都市伏見区久我東町</td>
+  <td class="stn">ＪＲ東海道本線「長岡京」バス16分停歩3分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20670407/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.936329,135.730423&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-77365330" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77365330" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F330%2F77365330%2F77365330_0012.jpg&w=192&h=144" loading="lazy" alt="衣笠氷室町（等持院・立命館大学… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1800<span class=u>万</span></td>
+  <td class="tsubo-col">154.45 <span class=u>坪</span></td>
+  <td class="m2-col">510.59 <span class=u>m²</span></td>
+  <td class="unit">11.7万/坪</td>
+  <td class="dt dt-mid">23 分</td>
+  <td class="dk">14.07 <span class=u>km</span></td>
+  <td class="name">衣笠氷室町（等持院・立命館大学… 画像１</td>
+  <td class="loc">京都府京都市北区衣笠氷室町</td>
+  <td class="stn">京福電鉄北野線「等持院・立命館大学衣笠キャンパス前」徒歩25分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_77365330/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.040222,135.725784&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20263497" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20263497" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F497%2F20263497%2F20263497_0059.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン向島二ノ丸町　1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1800<span class=u>万</span></td>
+  <td class="tsubo-col">38.39 <span class=u>坪</span></td>
+  <td class="m2-col">126.9 <span class=u>m²</span></td>
+  <td class="unit">46.9万/坪</td>
+  <td class="dt dt-very-near">5.4 分</td>
+  <td class="dk">4.34 <span class=u>km</span></td>
+  <td class="name">ドリームタウン向島二ノ丸町　1… 画像１</td>
+  <td class="loc">京都府京都市伏見区向島二ノ丸町339-13・339-15</td>
+  <td class="stn">近鉄京都線「向島」徒歩10分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20263497/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.920307,135.771149&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78958678" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78958678" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F678%2F78958678%2F78958678_0024.jpg&w=192&h=144" loading="lazy" alt="八幡河原崎（石清水八幡宮駅） … 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1850<span class=u>万</span></td>
+  <td class="tsubo-col">59.2 <span class=u>坪</span></td>
+  <td class="m2-col">195.7 <span class=u>m²</span></td>
+  <td class="unit">31.3万/坪</td>
+  <td class="dt dt-very-near">14.2 分</td>
+  <td class="dk">11.19 <span class=u>km</span></td>
+  <td class="name">八幡河原崎（石清水八幡宮駅） … 画像１</td>
+  <td class="loc">京都府八幡市八幡河原崎</td>
+  <td class="stn">京阪本線「石清水八幡宮」徒歩22分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_78958678/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.871681,135.704575&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-72702831" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72702831" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F831%2F72702831%2F72702831_0001.jpg&w=192&h=144" loading="lazy" alt="羽束師菱川町（長岡京駅） 18… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1874<span class=u>万</span></td>
+  <td class="tsubo-col">50.7 <span class=u>坪</span></td>
+  <td class="m2-col">167.6 <span class=u>m²</span></td>
+  <td class="unit">37.0万/坪</td>
+  <td class="dt dt-very-near">5.4 分</td>
+  <td class="dk">2.75 <span class=u>km</span></td>
+  <td class="name">羽束師菱川町（長岡京駅） 18… 画像１</td>
+  <td class="loc">京都府京都市伏見区羽束師菱川町</td>
+  <td class="stn">ＪＲ東海道本線「長岡京」徒歩29分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_72702831/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.932495,135.71962&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20406665" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20406665" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F665%2F20406665%2F20406665_0002.jpg&w=192&h=144" loading="lazy" alt="向島二ノ丸町（向島駅） 188… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1880<span class=u>万</span></td>
+  <td class="tsubo-col">46.52 <span class=u>坪</span></td>
+  <td class="m2-col">153.77 <span class=u>m²</span></td>
+  <td class="unit">40.5万/坪</td>
+  <td class="dt dt-very-near">6.1 分</td>
+  <td class="dk">4.7 <span class=u>km</span></td>
+  <td class="name">向島二ノ丸町（向島駅） 188… 画像１</td>
+  <td class="loc">京都府京都市伏見区向島二ノ丸町</td>
+  <td class="stn">近鉄京都線「向島」徒歩14分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20406665/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.918137,135.772751&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78770233" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78770233" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F233%2F78770233%2F78770233_0001.jpg&w=192&h=144" loading="lazy" alt="御陵上御廟野町（御陵駅） 18… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1880<span class=u>万</span></td>
+  <td class="tsubo-col">42.92 <span class=u>坪</span></td>
+  <td class="m2-col">141.9 <span class=u>m²</span></td>
+  <td class="unit">43.8万/坪</td>
+  <td class="dt dt-near">20 分</td>
+  <td class="dk">12.67 <span class=u>km</span></td>
+  <td class="name">御陵上御廟野町（御陵駅） 18… 画像１</td>
+  <td class="loc">京都府京都市山科区御陵上御廟野町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩4分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_78770233/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.996239,135.805771&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-72941412" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72941412" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F412%2F72941412%2F72941412_0001.jpg&w=192&h=144" loading="lazy" alt="八幡土井（石清水八幡宮駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1880<span class=u>万</span></td>
+  <td class="tsubo-col">49.01 <span class=u>坪</span></td>
+  <td class="m2-col">162 <span class=u>m²</span></td>
+  <td class="unit">38.4万/坪</td>
+  <td class="dt dt-very-near">11.2 分</td>
+  <td class="dk">9.27 <span class=u>km</span></td>
+  <td class="name">八幡土井（石清水八幡宮駅） 1… 画像１</td>
+  <td class="loc">京都府八幡市八幡土井</td>
+  <td class="stn">京阪本線「石清水八幡宮」徒歩4分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_72941412/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.885441,135.702728&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78686711" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78686711" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F711%2F78686711%2F78686711_0001.jpg&w=192&h=144" loading="lazy" alt="山田北ノ町（上桂駅） 1886… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">西京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1886<span class=u>万</span></td>
+  <td class="tsubo-col">142.96 <span class=u>坪</span></td>
+  <td class="m2-col">472.6 <span class=u>m²</span></td>
+  <td class="unit">13.2万/坪</td>
+  <td class="dt dt-near">18 分</td>
+  <td class="dk">11.62 <span class=u>km</span></td>
+  <td class="name">山田北ノ町（上桂駅） 1886… 画像１</td>
+  <td class="loc">京都府京都市西京区山田北ノ町</td>
+  <td class="stn">阪急嵐山線「上桂」徒歩14分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_78686711/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.991074,135.686111&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20484547" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20484547" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F547%2F20484547%2F20484547_0027.jpg&w=192&h=144" loading="lazy" alt="下鳥羽北三町（伏見桃山駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1899<span class=u>万</span></td>
+  <td class="tsubo-col">40 <span class=u>坪</span></td>
+  <td class="m2-col">132.24 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-very-near">2.4 分</td>
+  <td class="dk">0.94 <span class=u>km</span></td>
+  <td class="name">下鳥羽北三町（伏見桃山駅） 1… 画像１</td>
+  <td class="loc">京都府京都市伏見区下鳥羽北三町87</td>
+  <td class="stn">京阪本線「伏見桃山」徒歩32分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20484547/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.93705,135.741776&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20228935" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20228935" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F935%2F20228935%2F20228935_0033.jpg&w=192&h=144" loading="lazy" alt="八幡市八幡水珀　建築条件付き土… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1900<span class=u>万</span></td>
+  <td class="tsubo-col">43.3 <span class=u>坪</span></td>
+  <td class="m2-col">143.14 <span class=u>m²</span></td>
+  <td class="unit">43.9万/坪</td>
+  <td class="dt dt-near">15.1 分</td>
+  <td class="dk">10.23 <span class=u>km</span></td>
+  <td class="name">八幡市八幡水珀　建築条件付き土… 画像１</td>
+  <td class="loc">京都府八幡市八幡水珀</td>
+  <td class="stn">ＪＲ片町線「松井山手」バス18分停歩3分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20228935/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.856812,135.708603&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20384673" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20384673" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F673%2F20384673%2F20384673_0079.jpg&w=192&h=144" loading="lazy" alt="北花山中道町（御陵駅） 192… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1925<span class=u>万</span></td>
+  <td class="tsubo-col">33.16 <span class=u>坪</span></td>
+  <td class="m2-col">109.63 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-near">16.6 分</td>
+  <td class="dk">11.19 <span class=u>km</span></td>
+  <td class="name">北花山中道町（御陵駅） 192… 画像１</td>
+  <td class="loc">京都府京都市山科区北花山中道町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩16分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20384673/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.98642,135.800644&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-20103025" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20103025" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F025%2F20103025%2F20103025_0001.jpg&w=192&h=144" loading="lazy" alt="鷹峯光悦町 1950万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1950<span class=u>万</span></td>
+  <td class="tsubo-col">33.45 <span class=u>坪</span></td>
+  <td class="m2-col">110.57 <span class=u>m²</span></td>
+  <td class="unit">58.4万/坪</td>
+  <td class="dt dt-far">26.6 分</td>
+  <td class="dk">15.44 <span class=u>km</span></td>
+  <td class="name">鷹峯光悦町 1950万円 画像１</td>
+  <td class="loc">京都府京都市北区鷹峯光悦町</td>
+  <td class="stn">地下鉄烏丸線「北大路」バス18分停歩2分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_20103025/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.05304,135.730972&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-78630185" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78630185" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F185%2F78630185%2F78630185_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">45.57 <span class=u>坪</span></td>
+  <td class="m2-col">150.65 <span class=u>m²</span></td>
+  <td class="unit">43.5万/坪</td>
+  <td class="dt dt-mid">24.7 分</td>
+  <td class="dk">16.29 <span class=u>km</span></td>
+  <td class="name">一乗寺薬師堂町（一乗寺駅） 1… 画像１</td>
+  <td class="loc">京都府京都市左京区一乗寺薬師堂町</td>
+  <td class="stn">叡山電鉄叡山本線「一乗寺」徒歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78630185/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-78827442" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78827442" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F442%2F78827442%2F78827442_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺水掛町（修学院駅） 19… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">61.73 <span class=u>坪</span></td>
+  <td class="m2-col">204.05 <span class=u>m²</span></td>
+  <td class="unit">32.1万/坪</td>
+  <td class="dt dt-far">27.5 分</td>
+  <td class="dk">17.37 <span class=u>km</span></td>
+  <td class="name">一乗寺水掛町（修学院駅） 19… 画像１</td>
+  <td class="loc">京都府京都市左京区一乗寺水掛町</td>
+  <td class="stn">叡山電鉄叡山本線「修学院」徒歩14分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78827442/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.047806,135.801453&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-78396980" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78396980" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F980%2F78396980%2F78396980_0017.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">45.57 <span class=u>坪</span></td>
+  <td class="m2-col">150.65 <span class=u>m²</span></td>
+  <td class="unit">43.5万/坪</td>
+  <td class="dt dt-mid">24.7 分</td>
+  <td class="dk">16.29 <span class=u>km</span></td>
+  <td class="name">一乗寺薬師堂町（一乗寺駅） 1… 画像１</td>
+  <td class="loc">京都府京都市左京区一乗寺薬師堂町</td>
+  <td class="stn">叡山電鉄叡山本線「一乗寺」徒歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78396980/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-77877513" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77877513" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F513%2F77877513%2F77877513_0001.jpg&w=192&h=144" loading="lazy" alt="岩倉花園町（岩倉駅） 1980… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">54.04 <span class=u>坪</span></td>
+  <td class="m2-col">178.66 <span class=u>m²</span></td>
+  <td class="unit">36.7万/坪</td>
+  <td class="dt dt-over">32 分</td>
+  <td class="dk">19.57 <span class=u>km</span></td>
+  <td class="name">岩倉花園町（岩倉駅） 1980… 画像１</td>
+  <td class="loc">京都府京都市左京区岩倉花園町</td>
+  <td class="stn">叡山電鉄鞍馬線「岩倉」徒歩17分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77877513/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076031,135.800217&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-20247289" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20247289" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F289%2F20247289%2F20247289_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">45.57 <span class=u>坪</span></td>
+  <td class="m2-col">150.65 <span class=u>m²</span></td>
+  <td class="unit">43.5万/坪</td>
+  <td class="dt dt-mid">24.7 分</td>
+  <td class="dk">16.29 <span class=u>km</span></td>
+  <td class="name">一乗寺薬師堂町（一乗寺駅） 1… 画像１</td>
+  <td class="loc">京都府京都市左京区一乗寺薬師堂町</td>
+  <td class="stn">叡山電鉄叡山本線「一乗寺」徒歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_20247289/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-78395241" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78395241" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F241%2F78395241%2F78395241_0007.jpg&w=192&h=144" loading="lazy" alt="岩倉幡枝町（京都精華大前駅） … 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">198 <span class=u>坪</span></td>
+  <td class="m2-col">654.54 <span class=u>m²</span></td>
+  <td class="unit">10.1万/坪</td>
+  <td class="dt dt-over">30.2 分</td>
+  <td class="dk">19.06 <span class=u>km</span></td>
+  <td class="name">岩倉幡枝町（京都精華大前駅） … 画像１</td>
+  <td class="loc">京都府京都市左京区岩倉幡枝町</td>
+  <td class="stn">叡山電鉄鞍馬線「京都精華大前」徒歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78395241/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.066051,135.77182&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="over" data-pid="SUUMO-77345494" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77345494" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F494%2F77345494%2F77345494_0001.jpg&w=192&h=144" loading="lazy" alt="岩倉花園町（国際会館駅） 19… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">左京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">102.27 <span class=u>坪</span></td>
+  <td class="m2-col">338.07 <span class=u>m²</span></td>
+  <td class="unit">19.4万/坪</td>
+  <td class="dt dt-over">32 分</td>
+  <td class="dk">19.57 <span class=u>km</span></td>
+  <td class="name">岩倉花園町（国際会館駅） 19… 画像１</td>
+  <td class="loc">京都府京都市左京区岩倉花園町</td>
+  <td class="stn">地下鉄烏丸線「国際会館」徒歩24分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77345494/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076031,135.800217&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="25" data-pid="SUUMO-20667053" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20667053" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F053%2F20667053%2F20667053_0006.jpg&w=192&h=144" loading="lazy" alt="鳴滝音戸山町（鳴滝駅） 198… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">44.99 <span class=u>坪</span></td>
+  <td class="m2-col">148.72 <span class=u>m²</span></td>
+  <td class="unit">44.1万/坪</td>
+  <td class="dt dt-mid">22.5 分</td>
+  <td class="dk">14.72 <span class=u>km</span></td>
+  <td class="name">鳴滝音戸山町（鳴滝駅） 198… 画像１</td>
+  <td class="loc">京都府京都市右京区鳴滝音戸山町</td>
+  <td class="stn">京福電鉄北野線「鳴滝」徒歩10分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_20667053/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.028194,135.697113&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-78147358" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78147358" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F358%2F78147358%2F78147358_0042.jpg&w=192&h=144" loading="lazy" alt="メルディア万帖敷町 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">35.36 <span class=u>坪</span></td>
+  <td class="m2-col">116.89 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-very-near">6.4 分</td>
+  <td class="dk">4.92 <span class=u>km</span></td>
+  <td class="name">メルディア万帖敷町 画像１</td>
+  <td class="loc">京都府京都市伏見区深草大亀谷万帖敷町</td>
+  <td class="stn">ＪＲ奈良線「ＪＲ藤森」徒歩13分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78147358/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-79022996" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79022996" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F996%2F79022996%2F79022996_0022.jpg&w=192&h=144" loading="lazy" alt="醍醐御園尾町　建築条件売土地 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">伏見区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">33.81 <span class=u>坪</span></td>
+  <td class="m2-col">111.78 <span class=u>m²</span></td>
+  <td class="unit">58.6万/坪</td>
+  <td class="dt dt-very-near">10.8 分</td>
+  <td class="dk">7.83 <span class=u>km</span></td>
+  <td class="name">醍醐御園尾町　建築条件売土地 画像１</td>
+  <td class="loc">京都府京都市伏見区醍醐御園尾町</td>
+  <td class="stn">地下鉄東西線「醍醐」徒歩10分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_79022996/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.946205,135.813828&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77618593" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77618593" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F593%2F77618593%2F77618593_0003.jpg&w=192&h=144" loading="lazy" alt="御陵血洗町（御陵駅） 1980… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">山科区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">38.01 <span class=u>坪</span></td>
+  <td class="m2-col">125.64 <span class=u>m²</span></td>
+  <td class="unit">52.1万/坪</td>
+  <td class="dt dt-near">18.5 分</td>
+  <td class="dk">12.11 <span class=u>km</span></td>
+  <td class="name">御陵血洗町（御陵駅） 1980… 画像１</td>
+  <td class="loc">京都府京都市山科区御陵血洗町</td>
+  <td class="stn">地下鉄東西線「御陵」徒歩9分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_77618593/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.990543,135.806107&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-72842524" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72842524" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F524%2F72842524%2F72842524_0010.jpg&w=192&h=144" loading="lazy" alt="八幡土井（石清水八幡宮駅） 1… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">42.06 <span class=u>坪</span></td>
+  <td class="m2-col">139.04 <span class=u>m²</span></td>
+  <td class="unit">47.1万/坪</td>
+  <td class="dt dt-very-near">11.2 分</td>
+  <td class="dk">9.27 <span class=u>km</span></td>
+  <td class="name">八幡土井（石清水八幡宮駅） 1… 画像１</td>
+  <td class="loc">京都府八幡市八幡土井</td>
+  <td class="stn">京阪本線「石清水八幡宮」徒歩5分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_72842524/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.885441,135.702728&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20173898" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20173898" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F898%2F20173898%2F20173898_0017.jpg&w=192&h=144" loading="lazy" alt="男山長沢（樟葉駅） 1980万… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">43.56 <span class=u>坪</span></td>
+  <td class="m2-col">144 <span class=u>m²</span></td>
+  <td class="unit">45.5万/坪</td>
+  <td class="dt dt-near">15.8 分</td>
+  <td class="dk">11.24 <span class=u>km</span></td>
+  <td class="name">男山長沢（樟葉駅） 1980万… 画像１</td>
+  <td class="loc">京都府八幡市男山長沢19-11</td>
+  <td class="stn">京阪本線「樟葉」徒歩29分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20173898/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.866257,135.693665&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-73513106" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-73513106" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F106%2F73513106%2F73513106_0003.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1980… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">89.28 <span class=u>坪</span></td>
+  <td class="m2-col">295.15 <span class=u>m²</span></td>
+  <td class="unit">22.2万/坪</td>
+  <td class="dt dt-very-near">14.5 分</td>
+  <td class="dk">10.89 <span class=u>km</span></td>
+  <td class="name">橋本栗ケ谷（橋本駅） 1980… 画像１</td>
+  <td class="loc">京都府八幡市橋本栗ケ谷</td>
+  <td class="stn">京阪本線「橋本」徒歩5分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_73513106/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77242477" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77242477" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2Fsystem%2Fimg%2FDummy_Photo_030_132_99.jpg&w=192&h=144" loading="lazy" alt="男山吉井 1980万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1980<span class=u>万</span></td>
+  <td class="tsubo-col">46.11 <span class=u>坪</span></td>
+  <td class="m2-col">152.42 <span class=u>m²</span></td>
+  <td class="unit">43.0万/坪</td>
+  <td class="dt dt-near">16.2 分</td>
+  <td class="dk">10.76 <span class=u>km</span></td>
+  <td class="name">男山吉井 1980万円 画像１</td>
+  <td class="loc">京都府八幡市男山吉井</td>
+  <td class="stn">京阪本線「樟葉」バス12分停歩4分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_77242477/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.859665,135.702286&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20006205" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20006205" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F205%2F20006205%2F20006205_0001.jpg&w=192&h=144" loading="lazy" alt="梅津罧原町（松尾大社駅） 19… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">右京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">1999<span class=u>万</span></td>
+  <td class="tsubo-col">35.05 <span class=u>坪</span></td>
+  <td class="m2-col">115.86 <span class=u>m²</span></td>
+  <td class="unit">57.1万/坪</td>
+  <td class="dt dt-near">18.8 分</td>
+  <td class="dk">12.85 <span class=u>km</span></td>
+  <td class="name">梅津罧原町（松尾大社駅） 19… 画像１</td>
+  <td class="loc">京都府京都市右京区梅津罧原町</td>
+  <td class="stn">阪急嵐山線「松尾大社」徒歩11分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_20006205/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.005081,135.6922&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="SUUMO-78244657" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78244657" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F657%2F78244657%2F78244657_0002.jpg&w=192&h=144" loading="lazy" alt="上賀茂中ノ河原町 2000万円… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">2000<span class=u>万</span></td>
+  <td class="tsubo-col">53.24 <span class=u>坪</span></td>
+  <td class="m2-col">176 <span class=u>m²</span></td>
+  <td class="unit">-</td>
+  <td class="dt dt-far">27.3 分</td>
+  <td class="dk">16.16 <span class=u>km</span></td>
+  <td class="name">上賀茂中ノ河原町 2000万円… 画像１</td>
+  <td class="loc">京都府京都市北区上賀茂中ノ河原町</td>
+  <td class="stn">京都市営バス「西賀茂井ノ口町停」徒歩11分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_78244657/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.067451,135.746521&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-20126144" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20126144" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F144%2F20126144%2F20126144_0001.jpg&w=192&h=144" loading="lazy" alt="樫原鴫谷 2000万円 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">西京区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">2000<span class=u>万</span></td>
+  <td class="tsubo-col">575.36 <span class=u>坪</span></td>
+  <td class="m2-col">1902 <span class=u>m²</span></td>
+  <td class="unit">3.5万/坪</td>
+  <td class="dt dt-near">17 分</td>
+  <td class="dk">11.01 <span class=u>km</span></td>
+  <td class="name">樫原鴫谷 2000万円 画像１</td>
+  <td class="loc">京都府京都市西京区樫原鴫谷</td>
+  <td class="stn">京阪・ヤサカ・市バス「樫原秤谷町」徒歩8分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_20126144/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.974129,135.682404&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="20" data-pid="SUUMO-77126874" data-src="SUUMO" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77126874" aria-label="お気に入り"></td>
+  <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F874%2F77126874%2F77126874_0004.jpg&w=192&h=144" loading="lazy" alt="橋本中ノ町（橋本駅） 2000… 画像１" /></td>
+  <td class="src src-suumo">SUUMO</td>
+  <td class="ward">八幡市<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">2000<span class=u>万</span></td>
+  <td class="tsubo-col">125.88 <span class=u>坪</span></td>
+  <td class="m2-col">416.13 <span class=u>m²</span></td>
+  <td class="unit">15.9万/坪</td>
+  <td class="dt dt-very-near">13.4 分</td>
+  <td class="dk">10.75 <span class=u>km</span></td>
+  <td class="name">橋本中ノ町（橋本駅） 2000… 画像１</td>
+  <td class="loc">京都府八幡市橋本中ノ町</td>
+  <td class="stn">京阪本線「橋本」徒歩4分</td>
+  <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_77126874/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.882896,135.682449&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+<tr data-bucket="30" data-pid="athome-6979703160" data-src="athome" data-new="true">
+  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6979703160" aria-label="お気に入り"></td>
+  <td class="img"><span class=no-img>—</span></td>
+  <td class="src src-athome">athome</td>
+  <td class="ward">北区<span class="new-badge">🆕 NEW</span></td>
+  <td class="price">2000<span class=u>万</span></td>
+  <td class="tsubo-col">288.89 <span class=u>坪</span></td>
+  <td class="m2-col">955 <span class=u>m²</span></td>
+  <td class="unit">6.93万/坪</td>
+  <td class="dt dt-far">29.1 分</td>
+  <td class="dk">17.11 <span class=u>km</span></td>
+  <td class="name">(物件名なし)</td>
+  <td class="loc">京都市北区西賀茂上庄田町</td>
+  <td class="stn">-</td>
+  <td class="link"><a href="https://www.athome.co.jp/tochi/6979703160/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.074795,135.739517&travelmode=driving" target="_blank" rel="noopener">経路</a></td>
+</tr>
+</tbody>
+</table></div>
+<script>
+const KEY = 'kyotoLandFavs_v3';
+function loadFavs() { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { return new Set(); } }
+function saveFavs(s) { localStorage.setItem(KEY, JSON.stringify([...s])); }
+function applyFavs() {
+  const favs = loadFavs();
+  document.querySelectorAll('tr[data-pid]').forEach(tr => {
+    const is = favs.has(tr.dataset.pid);
+    tr.classList.toggle('is-fav', is);
+    const cb = tr.querySelector('.fav-cb'); if (cb) cb.checked = is;
+  });
+  document.getElementById('fav-count').textContent = favs.size;
+}
+function toggleFav(pid, on) { const f = loadFavs(); if (on) f.add(pid); else f.delete(pid); saveFavs(f); applyFavs(); }
+function clearFavs() { if (!confirm('お気に入りを全て解除?')) return; localStorage.removeItem(KEY); applyFavs(); }
+function setView(m) {
+  document.body.classList.remove('view-20','view-25','view-30','view-fav','view-new');
+  if (m !== 'all') document.body.classList.add('view-'+m);
+  ['all','20','25','30','new','fav'].forEach(x => document.getElementById('tab-'+x).classList.toggle('active', m===x));
+}
+function applySrc() {
+  document.body.classList.toggle('hide-suumo', !document.getElementById('flt-suumo').checked);
+  document.body.classList.toggle('hide-athome', !document.getElementById('flt-athome').checked);
+  document.body.classList.toggle('hide-fudo', !document.getElementById('flt-fudo').checked);
+}
+document.addEventListener('change', e => {
+  if (e.target.matches('.fav-cb')) toggleFav(e.target.dataset.pid, e.target.checked);
+  if (e.target.matches('#flt-suumo, #flt-athome, #flt-fudo')) applySrc();
+});
+applyFavs(); setView('20');
+</script>
+</body></html>
