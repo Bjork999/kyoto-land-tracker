@@ -18,6 +18,9 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -42,3 +45,10 @@ jobs:
             git commit -m "chore: daily update $(date -u +%Y-%m-%dT%H:%MZ)"
             git push
           fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
