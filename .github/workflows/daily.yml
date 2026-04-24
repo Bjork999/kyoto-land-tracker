@@ -1,0 +1,44 @@
+name: Daily Scrape
+
+on:
+  schedule:
+    # 12:00 JST (03:00 UTC) and 17:00 JST (08:00 UTC)
+    - cron: '0 3,8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - name: Run scraper
+        run: npm run scrape
+        timeout-minutes: 25
+
+      - name: Commit updated HTML and known_ids
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html known_ids.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: daily update $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
