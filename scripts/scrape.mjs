@@ -462,9 +462,18 @@ function buildHtml(items, newCount, timestamp) {
   body.view-30 tr[data-bucket="over"] { display: none; }
   body.view-fav tr:not(.is-fav) { display: none; }
   body.view-new tr:not([data-new="true"]) { display: none; }
+  body.shared-view tr:not(.shared-item) { display: none; }
   body.hide-suumo tr[data-src="SUUMO"], body.hide-athome tr[data-src="athome"], body.hide-fudo tr[data-src="不動産ジャパン"] { display: none; }
   #empty-fav, #empty-new { display: none; padding: 40px; text-align: center; color: #888; background: #fff; border-radius: 8px; }
   body.view-fav #empty-fav, body.view-new #empty-new { display: block; }
+  .shared-banner { background: #e3f2fd; border-left: 4px solid #0a66c2; padding: 10px 14px; margin: 8px 0; border-radius: 4px; font-size: 0.9em; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .shared-banner .icon { font-size: 1.3em; }
+  .shared-banner strong { color: #0a66c2; }
+  .shared-banner button { padding: 6px 10px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; font-size: 0.9em; }
+  .shared-banner .btn-import { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+  .shared-banner .btn-back { background: #fff; color: #555; border-color: #ccc; }
+  .tab.share-btn { background: #17a2b8; color: #fff; }
+  .tab.share-btn:hover { background: #138496; }
   @media (max-width: 700px) {
     body { margin: 8px; }
     td.img img { width: 80px; height: 60px; }
@@ -487,8 +496,10 @@ ${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}�
   <button class="tab" id="tab-30" onclick="setView('30')">~30分 <span class="c">${total30}</span></button>
   <button class="tab new-tab" id="tab-new" onclick="setView('new')">🆕 新着 <span class="c">${newCount}</span></button>
   <button class="tab fav-tab" id="tab-fav" onclick="setView('fav')">❤ お気に入り <span class="c" id="fav-count">0</span></button>
+  <button class="tab share-btn" onclick="shareFavs()">🔗 共有</button>
   <button class="clear-btn" onclick="clearFavs()">お気に入り解除</button>
 </div>
+<div id="shared-banner-container"></div>
 <div id="empty-fav">❤ まだお気に入りなし。</div>
 <div id="empty-new">🆕 新着物件はありません。</div>
 <div class="table-wrap"><table>
@@ -522,11 +533,49 @@ function applySrc() {
   document.body.classList.toggle('hide-athome', !document.getElementById('flt-athome').checked);
   document.body.classList.toggle('hide-fudo', !document.getElementById('flt-fudo').checked);
 }
+async function shareFavs() {
+  const favs = [...loadFavs()];
+  if (!favs.length) { alert('お気に入りが空です。物件のチェックを入れてから共有してください。'); return; }
+  const url = location.href.split('#')[0] + '#fav=' + favs.map(encodeURIComponent).join(',');
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('共有URLをコピーしました (' + favs.length + '件)\\n\\nLINE/メール等に貼り付けて送ってください。\\n受け取った人が開くと、このリストだけ表示されます。');
+  } catch { prompt('以下のURLをコピーして共有してください:', url); }
+}
+function importShared(ids) {
+  const favs = loadFavs(); let added = 0;
+  ids.forEach(id => { if (!favs.has(id)) { favs.add(id); added++; } });
+  saveFavs(favs); applyFavs();
+  alert(added + '件を自分のお気に入りに追加しました (既にあった' + (ids.length - added) + '件はスキップ)');
+}
+function clearSharedView() {
+  history.replaceState(null, '', location.pathname + location.search);
+  document.body.classList.remove('shared-view');
+  document.getElementById('shared-banner-container').innerHTML = '';
+  document.querySelectorAll('.shared-item').forEach(t => t.classList.remove('shared-item'));
+}
+function initSharedView() {
+  const m = location.hash.match(/^#fav=(.+)$/);
+  if (!m) return;
+  const ids = m[1].split(',').map(decodeURIComponent);
+  const idSet = new Set(ids);
+  let matched = 0;
+  document.querySelectorAll('tr[data-pid]').forEach(tr => {
+    if (idSet.has(tr.dataset.pid)) { tr.classList.add('shared-item'); matched++; }
+  });
+  document.body.classList.add('shared-view');
+  const c = document.getElementById('shared-banner-container');
+  const ie = ids.map(id => id.replace(/'/g,"\\\\'"));
+  c.innerHTML = '<div class="shared-banner"><span class="icon">🔗</span> <strong>共有されたお気に入りリスト</strong> (' + matched + '/' + ids.length + '件表示中)' +
+    '<button class="btn-import" onclick="importShared([' + ie.map(i => "'"+i+"'").join(',') + '])">📥 自分のお気に入りに追加</button>' +
+    '<button class="btn-back" onclick="clearSharedView()">✖ 元の一覧に戻る</button></div>';
+}
 document.addEventListener('change', e => {
   if (e.target.matches('.fav-cb')) toggleFav(e.target.dataset.pid, e.target.checked);
   if (e.target.matches('#flt-suumo, #flt-athome, #flt-fudo')) applySrc();
 });
-applyFavs(); setView('20');
+applyFavs();
+if (location.hash.startsWith('#fav=')) initSharedView(); else setView('20');
 </script>
 </body></html>`;
 }
