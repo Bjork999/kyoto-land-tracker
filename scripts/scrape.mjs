@@ -345,7 +345,7 @@ function buildHtml(items, newCount, timestamp) {
     const loc = escapeHtml(x.location || '-');
     const stn = escapeHtml(x.station || '-');
     const imgCell = x.imgUrl ? `<img src="${x.imgUrl}" loading="lazy" alt="${name}" />` : '<span class=no-img>—</span>';
-    const mapLink = x.lat && x.lng ? `https://www.google.com/maps/dir/?api=1&origin=${ORIGIN.lat},${ORIGIN.lng}&destination=${x.lat},${x.lng}&travelmode=driving` : '#';
+    const mapLink = x.lat && x.lng ? `https://www.google.com/maps/dir/?api=1&origin=${ORIGIN.lat},${ORIGIN.lng}&destination=${x.lat},${x.lng}&travelmode=driving&avoid=tolls` : '#';
     const mapBtn = x.lat && x.lng ? `<a class="map" href="${mapLink}" target="_blank" rel="noopener">経路</a>` : '';
     const newBadge = x.isNew ? '<span class="new-badge">🆕 NEW</span>' : '';
     const tsuboUnitTxt = x.tsuboUnit ? `${x.tsuboUnit}万/坪` : '-';
@@ -458,8 +458,7 @@ function buildHtml(items, newCount, timestamp) {
   条件: 33坪(109m²)以上・2000万円以下・居住用 | 価格安い順 | 起点: <strong>${ORIGIN.label}</strong><br>
   ソース: <strong>SUUMO ${srcCounts.SUUMO} + athome ${srcCounts.athome} + 不動産ジャパン ${srcCounts['不動産ジャパン']} = 合計 ${totalAll}件</strong> | 更新: ${timestamp}
 </div>
-${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}件 (過去${NEW_DAYS}日以内の新規検出物件含む)</div>` : ''}
-<div class="notice">⚠ 運転時間は OSRM 推定で渋滞・信号を含みません。各行「経路」で Google Maps の実時間を確認。❤ チェックで「お気に入り」タブに集約。</div>
+${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}件</div>` : ''}
 <div class="tabs">
   <button class="tab" id="tab-all" onclick="setView('all')">全件 <span class="c">${totalAll}</span></button>
   <button class="tab active" id="tab-20" onclick="setView('20')">~20分 <span class="c">${total20}</span></button>
@@ -468,11 +467,6 @@ ${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}�
   <button class="tab new-tab" id="tab-new" onclick="setView('new')">🆕 新着 <span class="c">${newCount}</span></button>
   <button class="tab fav-tab" id="tab-fav" onclick="setView('fav')">❤ お気に入り <span class="c" id="fav-count">0</span></button>
   <button class="clear-btn" onclick="clearFavs()">お気に入り解除</button>
-</div>
-<div class="filters">ソース絞込:
-  <label><input type="checkbox" id="flt-suumo" checked> SUUMO</label>
-  <label><input type="checkbox" id="flt-athome" checked> athome</label>
-  <label><input type="checkbox" id="flt-fudo" checked> 不動産ジャパン</label>
 </div>
 <div id="empty-fav">❤ まだお気に入りなし。</div>
 <div id="empty-new">🆕 新着物件はありません。</div>
