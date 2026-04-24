@@ -140,7 +140,7 @@ async function scrapeAthome() {
       if (m) { const n = parseInt(m[1], 10); if (n > maxPage) maxPage = n; }
     });
     const extract = ($) => {
-      $('.card-box-inner').each((_, el) => {
+      $('.card-box').each((_, el) => {
         const $el = $(el);
         const text = $el.text().replace(/\s+/g, ' ').trim();
         if (!text.includes('住宅用地') && !text.includes('宅地')) return;
@@ -154,18 +154,26 @@ async function scrapeAthome() {
         const locMatch = text.match(/所在地\s*(京都[市府]?[^\s]+|八幡市[^\s]+)/) || text.match(/(京都市[^（\s]+|八幡市[^（\s]+)/);
         const stnMatch = text.match(/交通\s*(.+?)\s*所在地/);
         const tsuboUnitMatch = text.match(/坪単価\s*([\d,\.]+)\s*万円/);
-        const img = $el.find('img').first();
-        const imgUrl = img.attr('data-src') || img.attr('data-original') || img.attr('src') || '';
+        // Try to get image - athome most images lazy-loaded (no URL in raw HTML for cards below fold)
+        let imgUrl = '';
+        $el.find('img').each((_, i) => {
+          const src = $(i).attr('src') || '';
+          if (src.startsWith('http') && /image_files|\.jpg|\.png/.test(src) && !/icon|favorite|logo|svg|loading|static_app_contents/.test(src)) {
+            imgUrl = src; return false;
+          }
+        });
+        // Title from .title-wrap
+        const title = $el.find('.title-wrap').first().text().replace(/\s+/g, ' ').trim().slice(0, 80) || null;
         const idMatch = href.match(/\/tochi\/(\d+)/);
         const propId = idMatch ? `athome-${idMatch[1]}` : `athome-${href}`;
         results.push({
-          propId, source: 'athome', ward, name: null,
+          propId, source: 'athome', ward, name: title,
           priceMan, areaM2, tsubo,
           tsuboUnit: tsuboUnitMatch ? tsuboUnitMatch[1] : null,
           location: locMatch ? locMatch[1].trim() : null,
           station: stnMatch ? stnMatch[1].trim().slice(0, 80) : null,
           url: href,
-          imgUrl: imgUrl.startsWith('http') && !imgUrl.includes('data:') ? imgUrl : ''
+          imgUrl
         });
       });
     };
@@ -214,18 +222,21 @@ async function scrapeFudousan() {
         const locMatch = text.match(/【売地】\s*(京都[市府][^\s周]+?|八幡市[^\s周]+?)(?=\s*周辺|\s*画像|$)/);
         const stnMatch = text.match(/(.+?(?:徒歩|バス)[\d]+分)(?=\s+\d|\s+[\d,]+万)/);
         const tsuboUnitMatch = text.match(/坪単価[^：:]*[：:]\s*([\d,]+)万/);
-        const img = $el.find('img').first();
-        const imgUrl = img.attr('data-src') || img.attr('src') || '';
+        // 不動産ジャパン uses data-echo for lazy-loading
+        const img = $el.find('img.prop-img, img').first();
+        const imgUrl = img.attr('data-echo') || img.attr('data-src') || img.attr('src') || '';
+        const nameMatch = text.match(/【売地】\s*(京都[市府][^\s周]+?|八幡市[^\s周]+?)(?=\s*周辺|\s*画像|$)/);
         const idMatch = href.match(/\/show\/(\d+)|\/property\/(\d+)/);
         const propId = idMatch ? `fudo-${idMatch[1] || idMatch[2]}` : `fudo-${href}`;
         results.push({
-          propId, source: '不動産ジャパン', ward, name: null,
+          propId, source: '不動産ジャパン', ward,
+          name: nameMatch ? nameMatch[1].trim() : null,
           priceMan, areaM2, tsubo,
           tsuboUnit: tsuboUnitMatch ? tsuboUnitMatch[1].replace(/,/g, '') : null,
           location: locMatch ? locMatch[1].trim() : null,
           station: stnMatch ? stnMatch[1].trim().slice(0, 100) : null,
           url: href,
-          imgUrl: imgUrl.startsWith('http') && !imgUrl.includes('no_photo') ? imgUrl : ''
+          imgUrl: imgUrl.startsWith('http') && !imgUrl.includes('no_photo') && !imgUrl.includes('loading') ? imgUrl : ''
         });
       });
     };
