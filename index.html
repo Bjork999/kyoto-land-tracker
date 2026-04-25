@@ -23,10 +23,17 @@
   table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-width: 1200px; }
   th, td { padding: 7px 9px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; font-size: 0.9em; }
   th { background: #f2f5f8; position: sticky; top: 0; font-weight: 600; z-index: 1; white-space: nowrap; }
-  td.fav { width: 36px; text-align: center; }
-  td.fav input { width: 20px; height: 20px; cursor: pointer; accent-color: #d9534f; }
+  td.actions { width: 60px; text-align: center; white-space: nowrap; padding: 4px; }
+  td.actions input { width: 20px; height: 20px; cursor: pointer; accent-color: #d9534f; vertical-align: middle; }
+  td.actions .excl-btn { background: none; border: none; cursor: pointer; font-size: 1.1em; opacity: 0.25; padding: 2px 4px; vertical-align: middle; transition: opacity 0.15s; }
+  td.actions .excl-btn:hover { opacity: 1; }
   tr.is-fav { background: #fff5f5; }
-  tr.is-fav td.fav { background: #fff0f0; }
+  tr.is-fav td.actions { background: #fff0f0; }
+  tr.is-excluded { display: none; }
+  body.view-excl tbody tr.is-excluded { display: table-row !important; background: #f8d7da; opacity: 0.85; }
+  body.view-excl tbody tr:not(.is-excluded) { display: none !important; }
+  body.view-excl tbody tr.is-excluded td.actions .excl-btn { opacity: 1; color: #28a745; }
+  body.view-excl tbody tr.is-excluded td.actions .excl-btn::before { content: '↩ '; font-size: 0.85em; }
   tr[data-new="true"] { background: linear-gradient(90deg, #fff3f3 0%, #fff 40%); }
   tr[data-new="true"] td.ward { background: #d9534f; color: #fff; }
   .new-badge { display: inline-block; background: #d9534f; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 0.7em; margin-left: 4px; font-weight: 700; }
@@ -85,7 +92,7 @@
 <h1>🏡 京都市・八幡市 土地一覧</h1>
 <div class="meta">
   条件: 33坪(109m²)以上・2000万円以下・居住用 | 価格安い順 | 起点: <strong>伏見区下鳥羽南円面田町52</strong><br>
-  ソース: <strong>SUUMO 85 + athome 43 + 不動産ジャパン 21 = 合計 149件</strong> | 更新: 2026/4/25 11:20:41
+  ソース: <strong>SUUMO 85 + athome 43 + 不動産ジャパン 21 = 合計 149件</strong> | 更新: 2026/4/26 0:34:30
 </div>
 
 <div class="tabs">
@@ -95,6 +102,7 @@
   <button class="tab" id="tab-30" onclick="setView('30')">~30分 <span class="c">110</span></button>
   <button class="tab new-tab" id="tab-new" onclick="setView('new')">🆕 新着 <span class="c">0</span></button>
   <button class="tab fav-tab" id="tab-fav" onclick="setView('fav')">❤ お気に入り <span class="c" id="fav-count">0</span></button>
+  <button class="tab excl-tab" id="tab-excl" onclick="setView('excl')">❌ 除外 <span class="c" id="excl-count">0</span></button>
   <button class="tab share-btn" onclick="shareFavs()">🔗 共有</button>
   <button class="clear-btn" onclick="clearFavs()">お気に入り解除</button>
 </div>
@@ -102,10 +110,10 @@
 <div id="empty-fav">❤ まだお気に入りなし。</div>
 <div id="empty-new">🆕 新着物件はありません。</div>
 <div class="table-wrap"><table>
-<thead><tr><th>❤</th><th>画像</th><th>元</th><th>区市</th><th>価格</th><th>坪数</th><th>m²</th><th>坪単価</th><th>運転</th><th>道のり</th><th>物件名</th><th>所在地</th><th>駅</th><th>リンク</th></tr></thead>
+<thead><tr><th>❤/❌</th><th>画像</th><th>元</th><th>区市</th><th>価格</th><th>坪数</th><th>m²</th><th>坪単価</th><th>運転</th><th>道のり</th><th>物件名</th><th>所在地</th><th>駅</th><th>リンク</th></tr></thead>
 <tbody>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012293895" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012293895" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012293895" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012293895" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -121,7 +129,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012293895" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.186275,135.650772&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6984219964" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6984219964" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6984219964" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6984219964" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -137,7 +145,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6984219964/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-76976733" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76976733" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76976733" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76976733" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F733%2F76976733%2F76976733_0001.jpg&w=192&h=144" loading="lazy" alt="京北五本松町小山越 135万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -153,7 +161,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76976733/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.174911,135.62973&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000004018029" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000004018029" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000004018029" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000004018029" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -169,7 +177,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000004018029" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.236797,135.706177&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012152745" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012152745" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012152745" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012152745" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">左京区</td>
@@ -185,7 +193,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012152745" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.03513,135.793808&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6990399505" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990399505" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990399505" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990399505" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -201,7 +209,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990399505/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.152298,135.644836&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013365921" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013365921" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013365921" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013365921" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -217,7 +225,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000013365921" target="_blank" rel="noopener">詳細</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-1102989514" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1102989514" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1102989514" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1102989514" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -233,7 +241,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1102989514/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.236797,135.706177&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6984305318" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6984305318" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6984305318" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6984305318" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -249,7 +257,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6984305318/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012484902" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012484902" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012484902" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012484902" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -265,7 +273,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012484902" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.1492,135.615448&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011576489" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011576489" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011576489" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011576489" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -281,7 +289,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000011576489" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-79155835" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79155835" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79155835" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-79155835" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F835%2F79155835%2F79155835_0001.jpg&w=192&h=144" loading="lazy" alt="京北下弓削町狭間谷 330万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -297,7 +305,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_79155835/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.19128,135.627686&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013107305" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013107305" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013107305" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000013107305" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">北区</td>
@@ -313,7 +321,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000013107305" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.045403,135.716019&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011872183" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011872183" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011872183" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011872183" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">北区</td>
@@ -329,7 +337,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000011872183" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.045403,135.716019&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77186105" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77186105" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77186105" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77186105" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F105%2F77186105%2F77186105_0001.jpg&w=192&h=144" loading="lazy" alt="大原野上里北ノ町 450万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">西京区</td>
@@ -345,7 +353,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_77186105/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.953766,135.681763&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6976177150" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6976177150" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6976177150" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6976177150" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -361,7 +369,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6976177150/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012745303" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012745303" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012745303" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012745303" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">西京区</td>
@@ -377,7 +385,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012745303" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.936581,135.611038&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012429580" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012429580" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012429580" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012429580" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -393,7 +401,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012429580" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.041176,135.659073&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6984517980" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6984517980" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6984517980" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6984517980" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -409,7 +417,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6984517980/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6990343785" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990343785" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990343785" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990343785" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -425,7 +433,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990343785/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.955589,135.782959&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6984272832" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6984272832" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6984272832" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6984272832" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -441,7 +449,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6984272832/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012004786" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012004786" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012004786" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012004786" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -457,7 +465,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012004786" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.186275,135.650772&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012804872" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012804872" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012804872" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012804872" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -473,7 +481,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012804872" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.1973,135.645752&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-74648547" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-74648547" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-74648547" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-74648547" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F547%2F74648547%2F74648547_0005.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 590万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -489,7 +497,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_74648547/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.879341,135.688354&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6984281872" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6984281872" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6984281872" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6984281872" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -505,7 +513,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6984281872/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010862800" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010862800" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010862800" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010862800" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -521,7 +529,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000010862800" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.230053,135.651779&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010792981" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010792981" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010792981" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010792981" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">左京区</td>
@@ -537,7 +545,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000010792981" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.212669,135.821548&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="athome-6989886721" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6989886721" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6989886721" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6989886721" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.athome.co.jp/image_files/path/WgBubdt-YOgNLMLlh5ffWw==" loading="lazy" alt="京都市北区 衣笠赤阪町（北野白梅町駅） 住宅用地 698万円" /></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -553,7 +561,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6989886721/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.039658,135.721436&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="athome-6989886721" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6989886721" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6989886721" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6989886721" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -569,7 +577,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6989886721/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.039658,135.721436&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-79219979" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79219979" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79219979" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-79219979" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F979%2F79219979%2F79219979_0001.jpg&w=192&h=144" loading="lazy" alt="西賀茂蛙ケ谷 780万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -585,7 +593,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_79219979/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076439,135.73732&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20396280" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20396280" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20396280" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20396280" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F280%2F20396280%2F20396280_0008.jpg&w=192&h=144" loading="lazy" alt="淀樋爪町 780万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -601,7 +609,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20396280/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.91909,135.720413&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-75342743" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75342743" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75342743" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-75342743" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F743%2F75342743%2F75342743_0005.jpg&w=192&h=144" loading="lazy" alt="大原野南春日町 780万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">西京区</td>
@@ -617,7 +625,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_75342743/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.960644,135.637085&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012815033" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012815033" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012815033" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012815033" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">山科区</td>
@@ -633,7 +641,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012815033" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.992035,135.799896&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-77960138" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77960138" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77960138" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77960138" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F138%2F77960138%2F77960138_0002.jpg&w=192&h=144" loading="lazy" alt="北白川中山町 850万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -649,7 +657,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77960138/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.031574,135.821228&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-76067965" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76067965" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76067965" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76067965" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F965%2F76067965%2F76067965_0001.jpg&w=192&h=144" loading="lazy" alt="京北赤石町鳥ケ口 880万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -665,7 +673,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76067965/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.207104,135.619949&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-72701188" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72701188" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72701188" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-72701188" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F188%2F72701188%2F72701188_0005.jpg&w=192&h=144" loading="lazy" alt="桃山町泰長老（観月橋駅） 88… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -681,7 +689,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_72701188/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.929886,135.771057&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20295315" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295315" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295315" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20295315" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F315%2F20295315%2F20295315_0001.jpg&w=192&h=144" loading="lazy" alt="西野山桜ノ馬場町（椥辻駅） 8… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -697,7 +705,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20295315/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.971077,135.795532&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6986269784" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6986269784" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6986269784" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6986269784" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">左京区</td>
@@ -713,7 +721,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6986269784/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.273521,135.822952&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78693716" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78693716" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78693716" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78693716" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F716%2F78693716%2F78693716_0001.jpg&w=192&h=144" loading="lazy" alt="桃山町正宗（ＪＲ藤森駅） 88… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -729,7 +737,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78693716/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.943218,135.773773&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6976119740" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6976119740" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6976119740" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6976119740" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">八幡市</td>
@@ -745,7 +753,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6976119740/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.859592,135.706375&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-77490935" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77490935" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77490935" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77490935" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F935%2F77490935%2F77490935_0002.jpg&w=192&h=144" loading="lazy" alt="梅ケ畑高鼻町（宇多野駅） 93… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -761,7 +769,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_77490935/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.044086,135.689835&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-78323875" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78323875" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78323875" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78323875" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F875%2F78323875%2F78323875_0004.jpg&w=192&h=144" loading="lazy" alt="岩倉長谷町（岩倉駅） 950万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -777,7 +785,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78323875/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.078327,135.7892&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20407945" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20407945" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20407945" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20407945" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F945%2F20407945%2F20407945_0013.jpg&w=192&h=144" loading="lazy" alt="西野大鳥井町（東野駅） 980… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -793,7 +801,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20407945/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.979366,135.805328&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20177605" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20177605" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20177605" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20177605" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F605%2F20177605%2F20177605_0027.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 980万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -809,7 +817,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20177605/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20298769" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20298769" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20298769" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20298769" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F769%2F20298769%2F20298769_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 980万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -825,7 +833,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20298769/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6985930319" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6985930319" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6985930319" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6985930319" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">山科区</td>
@@ -841,7 +849,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6985930319/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.989914,135.80098&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6986561591" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6986561591" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6986561591" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6986561591" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">八幡市</td>
@@ -857,7 +865,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6986561591/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.88126,135.69014&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6967064767" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6967064767" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6967064767" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6967064767" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">左京区</td>
@@ -873,7 +881,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6967064767/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.089252,135.79924&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-76234216" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76234216" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76234216" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76234216" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F216%2F76234216%2F76234216_0011.jpg&w=192&h=144" loading="lazy" alt="大宮釈迦谷（北大路駅） 105… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -889,7 +897,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_76234216/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.065708,135.725266&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78727557" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78727557" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78727557" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78727557" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F557%2F78727557%2F78727557_0001.jpg&w=192&h=144" loading="lazy" alt="八幡五反田（石清水八幡宮駅） … 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -905,7 +913,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_78727557/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.87252,135.706131&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-75419634" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75419634" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75419634" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-75419634" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F634%2F75419634%2F75419634_0001.jpg&w=192&h=144" loading="lazy" alt="上高野鐘突町（三宅八幡駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -921,7 +929,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_75419634/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.061771,135.795532&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77831814" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77831814" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77831814" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77831814" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F814%2F77831814%2F77831814_0040.jpg&w=192&h=144" loading="lazy" alt="景勝町（伏見駅） 1100万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -937,7 +945,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_77831814/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944145,135.755875&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6979325307" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6979325307" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6979325307" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6979325307" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">八幡市</td>
@@ -953,7 +961,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6979325307/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.873234,135.703079&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-78458499" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78458499" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78458499" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78458499" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F499%2F78458499%2F78458499_0001.jpg&w=192&h=144" loading="lazy" alt="衣笠氷室町（等持院・立命館大学… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -969,7 +977,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_78458499/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.040222,135.725784&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20346057" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20346057" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20346057" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20346057" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F057%2F20346057%2F20346057_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1180… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -985,7 +993,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20346057/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20090776" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20090776" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20090776" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20090776" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F776%2F20090776%2F20090776_0001.jpg&w=192&h=144" loading="lazy" alt="戸津北小路 1200万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1001,7 +1009,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20090776/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.866795,135.717941&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="athome-6983983063" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6983983063" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6983983063" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6983983063" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -1017,7 +1025,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6983983063/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.064064,135.739517&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="athome-6983983063" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6983983063" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6983983063" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6983983063" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -1033,7 +1041,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6983983063/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.064064,135.739517&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010799295" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010799295" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010799295" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010799295" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">右京区</td>
@@ -1049,7 +1057,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000010799295" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.109741,135.628036&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010607200" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010607200" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010607200" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000010607200" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">左京区</td>
@@ -1065,7 +1073,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000010607200" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.08503,135.775925&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20174222" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20174222" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20174222" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20174222" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F222%2F20174222%2F20174222_0017.jpg&w=192&h=144" loading="lazy" alt="羽束師鴨川町 1274万円～1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1081,7 +1089,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20174222/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.933929,135.734116&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77510614" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77510614" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77510614" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77510614" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F614%2F77510614%2F77510614_0001.jpg&w=192&h=144" loading="lazy" alt="上花山講田町（御陵駅） 128… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1097,7 +1105,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_77510614/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.984013,135.797668&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20295377" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295377" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20295377" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20295377" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F377%2F20295377%2F20295377_0009.jpg&w=192&h=144" loading="lazy" alt="上花山講田町（御陵駅） 128… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1113,7 +1121,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20295377/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.984013,135.797668&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1066584598" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1066584598" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1066584598" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1066584598" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">山科区</td>
@@ -1129,7 +1137,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1066584598/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.97205,135.806854&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011346559" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011346559" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011346559" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000011346559" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">西京区</td>
@@ -1145,7 +1153,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000011346559" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.9842,135.646042&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78577090" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78577090" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78577090" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78577090" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F090%2F78577090%2F78577090_0018.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷東古御香町（ＪＲ藤森… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1161,7 +1169,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78577090/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944279,135.787109&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20596384" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20596384" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20596384" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20596384" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F384%2F20596384%2F20596384_0001.jpg&w=192&h=144" loading="lazy" alt="北花山河原町（御陵駅） 129… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1177,7 +1185,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20596384/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.988583,135.800888&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-76738724" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76738724" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76738724" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76738724" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F724%2F76738724%2F76738724_0180.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン梅津罧原町2期 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -1193,7 +1201,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_76738724/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.004875,135.691711&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-78123413" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78123413" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78123413" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78123413" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F413%2F78123413%2F78123413_0014.jpg&w=192&h=144" loading="lazy" alt="上高野隣好町（三宅八幡駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -1209,7 +1217,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78123413/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.062,135.794464&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20623443" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20623443" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20623443" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20623443" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F443%2F20623443%2F20623443_0019.jpg&w=192&h=144" loading="lazy" alt="横大路東裏町（中書島駅） 13… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1225,7 +1233,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20623443/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.92897,135.736389&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20570692" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20570692" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20570692" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20570692" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F692%2F20570692%2F20570692_0054.jpg&w=192&h=144" loading="lazy" alt="京都市伏見区深草大亀谷万帖敷町 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1241,7 +1249,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20570692/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-76762983" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76762983" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76762983" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76762983" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F983%2F76762983%2F76762983_0011.jpg&w=192&h=144" loading="lazy" alt="橋本新石（橋本駅） 1380万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1257,7 +1265,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_76762983/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.875061,135.68869&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6988078445" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6988078445" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6988078445" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6988078445" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">八幡市</td>
@@ -1273,7 +1281,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6988078445/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.855778,135.704529&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78314845" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78314845" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78314845" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78314845" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F845%2F78314845%2F78314845_0045.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン日野野色町 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1289,7 +1297,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78314845/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.931744,135.814331&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-77763234" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77763234" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77763234" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77763234" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F234%2F77763234%2F77763234_0014.jpg&w=192&h=144" loading="lazy" alt="大原大長瀬町 1480万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -1305,7 +1313,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77763234/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.113777,135.836578&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20296197" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20296197" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20296197" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20296197" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F197%2F20296197%2F20296197_0001.jpg&w=192&h=144" loading="lazy" alt="横大路東裏町（中書島駅） 14… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1321,7 +1329,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20296197/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.92897,135.736389&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20477829" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20477829" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20477829" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20477829" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F829%2F20477829%2F20477829_0001.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1480… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1337,7 +1345,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20477829/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20703840" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20703840" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20703840" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20703840" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F840%2F20703840%2F20703840_0002.jpg&w=192&h=144" loading="lazy" alt="川口西扇（石清水八幡宮駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1353,7 +1361,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20703840/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.876987,135.716568&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6988057570" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6988057570" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6988057570" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6988057570" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -1369,7 +1377,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6988057570/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.152298,135.644836&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-20222575" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20222575" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20222575" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20222575" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F575%2F20222575%2F20222575_0011.jpg&w=192&h=144" loading="lazy" alt="紫竹西野山町（北大路駅） 15… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -1385,7 +1393,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_20222575/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.050179,135.740677&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-78928721" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78928721" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78928721" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78928721" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F721%2F78928721%2F78928721_0001.jpg&w=192&h=144" loading="lazy" alt="大原小出石町 1580万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -1401,7 +1409,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78928721/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.159012,135.829376&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-76387009" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76387009" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76387009" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76387009" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F009%2F76387009%2F76387009_0001.jpg&w=192&h=144" loading="lazy" alt="今熊野南谷町（鳥羽街道駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">東山区</td>
@@ -1417,7 +1425,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshihigashiyama/nc_76387009/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.975647,135.778595&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78950899" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78950899" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78950899" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78950899" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F899%2F78950899%2F78950899_0001.jpg&w=192&h=144" loading="lazy" alt="西野後藤（椥辻駅） 1580万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1433,7 +1441,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_78950899/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.976921,135.803543&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-1052392061" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1052392061" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1052392061" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1052392061" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -1449,7 +1457,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1052392061/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.065708,135.725266&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-1052392061" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1052392061" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1052392061" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1052392061" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -1465,7 +1473,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1052392061/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.065708,135.725266&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-6983928344" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6983928344" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6983928344" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6983928344" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">左京区</td>
@@ -1481,7 +1489,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6983928344/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.084801,135.812622&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1066402798" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1066402798" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1066402798" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1066402798" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -1497,7 +1505,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1066402798/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.022739,135.715485&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012005998" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012005998" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012005998" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012005998" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">北区</td>
@@ -1513,7 +1521,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012005998" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.053329,135.736954&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-75157690" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75157690" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-75157690" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-75157690" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F690%2F75157690%2F75157690_0001.jpg&w=192&h=144" loading="lazy" alt="鷹峯旧土居町 1600万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -1529,7 +1537,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_75157690/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.046505,135.736099&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77653512" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77653512" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77653512" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77653512" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F512%2F77653512%2F77653512_0001.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1545,7 +1553,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_77653512/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6982703412" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6982703412" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6982703412" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6982703412" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">東山区</td>
@@ -1561,7 +1569,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6982703412/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.984184,135.780396&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1100995614" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1100995614" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1100995614" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1100995614" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1577,7 +1585,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1100995614/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.942814,135.731094&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6983638631" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6983638631" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6983638631" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6983638631" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1593,7 +1601,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6983638631/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012197058" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012197058" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012197058" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000012197058" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">左京区</td>
@@ -1609,7 +1617,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000012197058" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.089252,135.79924&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6989597449" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6989597449" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6989597449" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6989597449" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1625,7 +1633,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6989597449/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.95026,135.775452&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20108720" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20108720" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20108720" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20108720" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F720%2F20108720%2F20108720_0037.jpg&w=192&h=144" loading="lazy" alt="醍醐落保町（醍醐駅） 1764… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1641,7 +1649,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20108720/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.948662,135.819077&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20487276" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20487276" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20487276" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20487276" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F276%2F20487276%2F20487276_0036.jpg&w=192&h=144" loading="lazy" alt="深草大亀谷万帖敷町（ＪＲ藤森駅… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1657,7 +1665,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20487276/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-79180984" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79180984" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79180984" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-79180984" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F984%2F79180984%2F79180984_0008.jpg&w=192&h=144" loading="lazy" alt="久我御旅町 1780万円～19… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1673,7 +1681,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_79180984/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.942814,135.731094&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-76254187" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76254187" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-76254187" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-76254187" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F187%2F76254187%2F76254187_0016.jpg&w=192&h=144" loading="lazy" alt="川田菱尾田（椥辻駅） 1780… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1689,7 +1697,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_76254187/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.977695,135.79866&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20110733" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20110733" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20110733" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20110733" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F733%2F20110733%2F20110733_0014.jpg&w=192&h=144" loading="lazy" alt="美濃山御幸（松井山手駅） 17… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1705,7 +1713,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20110733/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.852253,135.713257&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="athome-1045936686" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1045936686" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1045936686" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1045936686" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">左京区</td>
@@ -1721,7 +1729,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1045936686/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.07645,135.786743&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000008318754" data-src="不動産ジャパン" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000008318754" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000008318754" aria-label="お気に入り"><button class="excl-btn" data-pid="不動産ジャパン-https://www.fudousan.or.jp/property/detail?p_no=000008318754" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://www.fudousan.or.jp/ps/common/img/loading_s.gif" loading="lazy" alt="(物件名なし)" /></td>
   <td class="src src-fudo">不動産ジャパン</td>
   <td class="ward">北区</td>
@@ -1737,7 +1745,7 @@
   <td class="link"><a href="https://www.fudousan.or.jp/property/detail?p_no=000008318754" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.045403,135.716019&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20670407" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20670407" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20670407" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20670407" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F407%2F20670407%2F20670407_0001.jpg&w=192&h=144" loading="lazy" alt="久我東町 1798万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1753,7 +1761,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20670407/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.936329,135.730423&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-77365330" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77365330" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77365330" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77365330" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F330%2F77365330%2F77365330_0012.jpg&w=192&h=144" loading="lazy" alt="衣笠氷室町（等持院・立命館大学… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -1769,7 +1777,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_77365330/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.040222,135.725784&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20263497" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20263497" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20263497" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20263497" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F497%2F20263497%2F20263497_0059.jpg&w=192&h=144" loading="lazy" alt="ドリームタウン向島二ノ丸町　1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1785,7 +1793,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20263497/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.920307,135.771149&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78958678" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78958678" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78958678" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78958678" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F678%2F78958678%2F78958678_0024.jpg&w=192&h=144" loading="lazy" alt="八幡河原崎（石清水八幡宮駅） … 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1801,7 +1809,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_78958678/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.871681,135.704575&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-72702831" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72702831" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72702831" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-72702831" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F831%2F72702831%2F72702831_0001.jpg&w=192&h=144" loading="lazy" alt="羽束師菱川町（長岡京駅） 18… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1817,7 +1825,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_72702831/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.932495,135.71962&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20406665" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20406665" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20406665" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20406665" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F665%2F20406665%2F20406665_0002.jpg&w=192&h=144" loading="lazy" alt="向島二ノ丸町（向島駅） 188… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1833,7 +1841,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20406665/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.918137,135.772751&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78770233" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78770233" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78770233" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78770233" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F233%2F78770233%2F78770233_0001.jpg&w=192&h=144" loading="lazy" alt="御陵上御廟野町（御陵駅） 18… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1849,7 +1857,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_78770233/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.996239,135.805771&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-72941412" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72941412" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72941412" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-72941412" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F412%2F72941412%2F72941412_0001.jpg&w=192&h=144" loading="lazy" alt="八幡土井（石清水八幡宮駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1865,7 +1873,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_72941412/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.885441,135.702728&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78686711" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78686711" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78686711" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78686711" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F711%2F78686711%2F78686711_0001.jpg&w=192&h=144" loading="lazy" alt="山田北ノ町（上桂駅） 1886… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">西京区</td>
@@ -1881,7 +1889,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_78686711/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.991074,135.686111&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20484547" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20484547" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20484547" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20484547" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F547%2F20484547%2F20484547_0027.jpg&w=192&h=144" loading="lazy" alt="下鳥羽北三町（伏見桃山駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -1897,7 +1905,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_20484547/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.93705,135.741776&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6990010999" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990010999" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990010999" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990010999" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1913,7 +1921,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990010999/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.937374,135.741959&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20228935" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20228935" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20228935" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20228935" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F935%2F20228935%2F20228935_0033.jpg&w=192&h=144" loading="lazy" alt="八幡市八幡水珀　建築条件付き土… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -1929,7 +1937,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20228935/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.856812,135.708603&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20384673" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20384673" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20384673" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20384673" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F673%2F20384673%2F20384673_0079.jpg&w=192&h=144" loading="lazy" alt="北花山中道町（御陵駅） 192… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -1945,7 +1953,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_20384673/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.98642,135.800644&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-20103025" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20103025" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20103025" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20103025" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F025%2F20103025%2F20103025_0001.jpg&w=192&h=144" loading="lazy" alt="鷹峯光悦町 1950万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -1961,7 +1969,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_20103025/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.05304,135.730972&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6990010878" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990010878" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990010878" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990010878" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1977,7 +1985,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990010878/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.937374,135.741959&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6990010557" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990010557" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990010557" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990010557" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -1993,7 +2001,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990010557/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.937374,135.741959&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-78630185" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78630185" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78630185" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78630185" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F185%2F78630185%2F78630185_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2009,7 +2017,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78630185/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-78827442" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78827442" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78827442" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78827442" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F442%2F78827442%2F78827442_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺水掛町（修学院駅） 19… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2025,7 +2033,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78827442/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.047806,135.801453&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-78396980" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78396980" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78396980" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78396980" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F980%2F78396980%2F78396980_0017.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2041,7 +2049,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78396980/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-77877513" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77877513" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77877513" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77877513" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F513%2F77877513%2F77877513_0001.jpg&w=192&h=144" loading="lazy" alt="岩倉花園町（岩倉駅） 1980… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2057,7 +2065,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77877513/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076031,135.800217&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-20247289" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20247289" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20247289" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20247289" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F289%2F20247289%2F20247289_0001.jpg&w=192&h=144" loading="lazy" alt="一乗寺薬師堂町（一乗寺駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2073,7 +2081,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_20247289/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.043095,135.79483&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-77345494" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77345494" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77345494" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77345494" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F494%2F77345494%2F77345494_0001.jpg&w=192&h=144" loading="lazy" alt="岩倉花園町（国際会館駅） 19… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2089,7 +2097,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_77345494/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.076031,135.800217&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="over" data-pid="SUUMO-78395241" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78395241" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78395241" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78395241" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F241%2F78395241%2F78395241_0007.jpg&w=192&h=144" loading="lazy" alt="岩倉幡枝町（京都精華大前駅） … 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2105,7 +2113,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_78395241/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.066051,135.77182&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="SUUMO-20667053" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20667053" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20667053" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20667053" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F053%2F20667053%2F20667053_0006.jpg&w=192&h=144" loading="lazy" alt="鳴滝音戸山町（鳴滝駅） 198… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -2121,7 +2129,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_20667053/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.028194,135.697113&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78147358" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78147358" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78147358" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78147358" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F358%2F78147358%2F78147358_0042.jpg&w=192&h=144" loading="lazy" alt="メルディア万帖敷町 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -2137,7 +2145,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_78147358/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.944202,135.779327&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-79022996" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79022996" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-79022996" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-79022996" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F996%2F79022996%2F79022996_0022.jpg&w=192&h=144" loading="lazy" alt="醍醐御園尾町　建築条件売土地 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">伏見区</td>
@@ -2153,7 +2161,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshifushimi/nc_79022996/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.946205,135.813828&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77618593" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77618593" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77618593" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77618593" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F593%2F77618593%2F77618593_0003.jpg&w=192&h=144" loading="lazy" alt="御陵血洗町（御陵駅） 1980… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">山科区</td>
@@ -2169,7 +2177,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiyamashina/nc_77618593/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.990543,135.806107&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20173898" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20173898" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20173898" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20173898" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F898%2F20173898%2F20173898_0017.jpg&w=192&h=144" loading="lazy" alt="男山長沢（樟葉駅） 1980万… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2185,7 +2193,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20173898/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.866257,135.693665&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-78991754" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78991754" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78991754" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78991754" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F754%2F78991754%2F78991754_0021.jpg&w=192&h=144" loading="lazy" alt="八幡水珀 1980万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2201,7 +2209,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_78991754/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.856812,135.708603&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-72842524" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72842524" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-72842524" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-72842524" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F524%2F72842524%2F72842524_0010.jpg&w=192&h=144" loading="lazy" alt="八幡土井（石清水八幡宮駅） 1… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2217,7 +2225,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_72842524/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.885441,135.702728&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77242477" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77242477" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77242477" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77242477" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2Fsystem%2Fimg%2FDummy_Photo_030_132_99.jpg&w=192&h=144" loading="lazy" alt="男山吉井 1980万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2233,7 +2241,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_77242477/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.859665,135.702286&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20410633" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20410633" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20410633" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20410633" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F633%2F20410633%2F20410633_0001.jpg&w=192&h=144" loading="lazy" alt="八幡軸（石清水八幡宮駅） 19… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2249,7 +2257,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_20410633/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.868534,135.706039&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-73513106" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-73513106" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-73513106" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-73513106" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F106%2F73513106%2F73513106_0003.jpg&w=192&h=144" loading="lazy" alt="橋本栗ケ谷（橋本駅） 1980… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2265,7 +2273,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_73513106/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.880939,135.686996&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="25" data-pid="athome-1175723814" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1175723814" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1175723814" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1175723814" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">右京区</td>
@@ -2281,7 +2289,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1175723814/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.023113,135.696198&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1014613787" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1014613787" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1014613787" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1014613787" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -2297,7 +2305,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1014613787/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.938374,135.808762&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1011153887" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1011153887" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1011153887" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1011153887" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -2313,7 +2321,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1011153887/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.952026,135.786774&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6990098618" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6990098618" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6990098618" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6990098618" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -2329,7 +2337,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6990098618/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.921066,135.765518&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-1192335719" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1192335719" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1192335719" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1192335719" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">伏見区</td>
@@ -2345,7 +2353,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/1192335719/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.921066,135.765518&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="athome-6989817403" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6989817403" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6989817403" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6989817403" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">八幡市</td>
@@ -2361,7 +2369,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6989817403/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.868534,135.706039&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20006205" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20006205" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20006205" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20006205" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F205%2F20006205%2F20006205_0001.jpg&w=192&h=144" loading="lazy" alt="梅津罧原町（松尾大社駅） 19… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">右京区</td>
@@ -2377,7 +2385,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshiukyo/nc_20006205/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.005081,135.6922&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-78244657" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78244657" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-78244657" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-78244657" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F657%2F78244657%2F78244657_0002.jpg&w=192&h=144" loading="lazy" alt="上賀茂中ノ河原町 2000万円… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">北区</td>
@@ -2393,7 +2401,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshikita/nc_78244657/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.067451,135.746521&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="SUUMO-20146821" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20146821" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20146821" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20146821" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F821%2F20146821%2F20146821_0001.jpg&w=192&h=144" loading="lazy" alt="上高野奥小森町（三宅八幡駅） … 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">左京区</td>
@@ -2409,7 +2417,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshisakyo/nc_20146821/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.063366,135.802399&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-20126144" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20126144" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-20126144" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-20126144" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F144%2F20126144%2F20126144_0001.jpg&w=192&h=144" loading="lazy" alt="樫原鴫谷 2000万円 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">西京区</td>
@@ -2425,7 +2433,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_kyotoshinishikyo/nc_20126144/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.974129,135.682404&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="20" data-pid="SUUMO-77126874" data-src="SUUMO" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77126874" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="SUUMO-77126874" aria-label="お気に入り"><button class="excl-btn" data-pid="SUUMO-77126874" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><img src="https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F060%2FN010000%2Fimg%2F874%2F77126874%2F77126874_0004.jpg&w=192&h=144" loading="lazy" alt="橋本中ノ町（橋本駅） 2000… 画像１" /></td>
   <td class="src src-suumo">SUUMO</td>
   <td class="ward">八幡市</td>
@@ -2441,7 +2449,7 @@
   <td class="link"><a href="https://suumo.jp/tochi/kyoto/sc_yawata/nc_77126874/" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=34.882896,135.682449&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="athome-6979703160" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6979703160" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6979703160" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6979703160" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -2457,7 +2465,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6979703160/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.074795,135.739517&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="athome-6979703160" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-6979703160" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-6979703160" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-6979703160" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">北区</td>
@@ -2473,7 +2481,7 @@
   <td class="link"><a href="https://www.athome.co.jp/tochi/6979703160/?DOWN=1&BKLISTID=001LPC&SEARCHDIV=1&sref=list_simple" target="_blank" rel="noopener">詳細</a><a class="map" href="https://www.google.com/maps/dir/?api=1&origin=34.931217,135.740479&destination=35.074795,135.739517&travelmode=driving&avoid=tolls" target="_blank" rel="noopener">経路</a></td>
 </tr>
 <tr data-bucket="30" data-pid="athome-1113588806" data-src="athome" data-new="false">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="athome-1113588806" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="athome-1113588806" aria-label="お気に入り"><button class="excl-btn" data-pid="athome-1113588806" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img"><span class=no-img>—</span></td>
   <td class="src src-athome">athome</td>
   <td class="ward">左京区</td>
@@ -2505,10 +2513,23 @@ function applyFavs() {
 }
 function toggleFav(pid, on) { const f = loadFavs(); if (on) f.add(pid); else f.delete(pid); saveFavs(f); applyFavs(); }
 function clearFavs() { if (!confirm('お気に入りを全て解除?')) return; localStorage.removeItem(KEY); applyFavs(); }
+const EXCL_KEY = 'kyotoLandExcluded_v1';
+function loadExcl() { try { return new Set(JSON.parse(localStorage.getItem(EXCL_KEY) || '[]')); } catch { return new Set(); } }
+function saveExcl(s) { localStorage.setItem(EXCL_KEY, JSON.stringify([...s])); }
+function applyExcl() {
+  const ex = loadExcl();
+  document.querySelectorAll('tr[data-pid]').forEach(tr => tr.classList.toggle('is-excluded', ex.has(tr.dataset.pid)));
+  document.getElementById('excl-count').textContent = ex.size;
+}
+function toggleExcl(pid) {
+  const ex = loadExcl();
+  if (ex.has(pid)) ex.delete(pid); else ex.add(pid);
+  saveExcl(ex); applyExcl();
+}
 function setView(m) {
-  document.body.classList.remove('view-20','view-25','view-30','view-fav','view-new');
+  document.body.classList.remove('view-20','view-25','view-30','view-fav','view-new','view-excl');
   if (m !== 'all') document.body.classList.add('view-'+m);
-  ['all','20','25','30','new','fav'].forEach(x => document.getElementById('tab-'+x).classList.toggle('active', m===x));
+  ['all','20','25','30','new','fav','excl'].forEach(x => { const b = document.getElementById('tab-'+x); if (b) b.classList.toggle('active', m===x); });
 }
 async function shareFavs() {
   const favs = [...loadFavs()];
@@ -2554,7 +2575,10 @@ function initSharedView() {
 document.addEventListener('change', e => {
   if (e.target.matches('.fav-cb')) toggleFav(e.target.dataset.pid, e.target.checked);
 });
-applyFavs();
+document.addEventListener('click', e => {
+  if (e.target.closest('.excl-btn')) toggleExcl(e.target.closest('.excl-btn').dataset.pid);
+});
+applyFavs(); applyExcl();
 if (location.hash.startsWith('#fav=')) {
   initSharedView();
 } else {

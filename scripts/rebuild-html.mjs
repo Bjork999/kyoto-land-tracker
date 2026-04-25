@@ -48,7 +48,7 @@ function buildHtml(items, newCount, timestamp) {
       propId = `${x.source}-${id}`;
     }
     return `<tr data-bucket="${driveBucket}" data-pid="${propId}" data-src="${x.source}" data-new="${x.isNew ? 'true' : 'false'}">
-  <td class="fav"><input type="checkbox" class="fav-cb" data-pid="${propId}" aria-label="お気に入り"></td>
+  <td class="actions"><input type="checkbox" class="fav-cb" data-pid="${propId}" aria-label="お気に入り"><button class="excl-btn" data-pid="${propId}" title="このリストから除外" aria-label="除外">❌</button></td>
   <td class="img">${imgCell}</td>
   <td class="src ${srcClass}">${x.source}</td>
   <td class="ward">${x.ward}${newBadge}</td>
@@ -97,10 +97,17 @@ function buildHtml(items, newCount, timestamp) {
   table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-width: 1200px; }
   th, td { padding: 7px 9px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; font-size: 0.9em; }
   th { background: #f2f5f8; position: sticky; top: 0; font-weight: 600; z-index: 1; white-space: nowrap; }
-  td.fav { width: 36px; text-align: center; }
-  td.fav input { width: 20px; height: 20px; cursor: pointer; accent-color: #d9534f; }
+  td.actions { width: 60px; text-align: center; white-space: nowrap; padding: 4px; }
+  td.actions input { width: 20px; height: 20px; cursor: pointer; accent-color: #d9534f; vertical-align: middle; }
+  td.actions .excl-btn { background: none; border: none; cursor: pointer; font-size: 1.1em; opacity: 0.25; padding: 2px 4px; vertical-align: middle; transition: opacity 0.15s; }
+  td.actions .excl-btn:hover { opacity: 1; }
   tr.is-fav { background: #fff5f5; }
-  tr.is-fav td.fav { background: #fff0f0; }
+  tr.is-fav td.actions { background: #fff0f0; }
+  tr.is-excluded { display: none; }
+  body.view-excl tbody tr.is-excluded { display: table-row !important; background: #f8d7da; opacity: 0.85; }
+  body.view-excl tbody tr:not(.is-excluded) { display: none !important; }
+  body.view-excl tbody tr.is-excluded td.actions .excl-btn { opacity: 1; color: #28a745; }
+  body.view-excl tbody tr.is-excluded td.actions .excl-btn::before { content: '↩ '; font-size: 0.85em; }
   tr[data-new="true"] { background: linear-gradient(90deg, #fff3f3 0%, #fff 40%); }
   tr[data-new="true"] td.ward { background: #d9534f; color: #fff; }
   .new-badge { display: inline-block; background: #d9534f; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 0.7em; margin-left: 4px; font-weight: 700; }
@@ -169,6 +176,7 @@ ${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}�
   <button class="tab" id="tab-30" onclick="setView('30')">~30分 <span class="c">${total30}</span></button>
   <button class="tab new-tab" id="tab-new" onclick="setView('new')">🆕 新着 <span class="c">${newCount}</span></button>
   <button class="tab fav-tab" id="tab-fav" onclick="setView('fav')">❤ お気に入り <span class="c" id="fav-count">0</span></button>
+  <button class="tab excl-tab" id="tab-excl" onclick="setView('excl')">❌ 除外 <span class="c" id="excl-count">0</span></button>
   <button class="tab share-btn" onclick="shareFavs()">🔗 共有</button>
   <button class="clear-btn" onclick="clearFavs()">お気に入り解除</button>
 </div>
@@ -176,7 +184,7 @@ ${newCount > 0 ? `<div class="new-highlight">🆕 本日の新着: ${newCount}�
 <div id="empty-fav">❤ まだお気に入りなし。</div>
 <div id="empty-new">🆕 新着物件はありません。</div>
 <div class="table-wrap"><table>
-<thead><tr><th>❤</th><th>画像</th><th>元</th><th>区市</th><th>価格</th><th>坪数</th><th>m²</th><th>坪単価</th><th>運転</th><th>道のり</th><th>物件名</th><th>所在地</th><th>駅</th><th>リンク</th></tr></thead>
+<thead><tr><th>❤/❌</th><th>画像</th><th>元</th><th>区市</th><th>価格</th><th>坪数</th><th>m²</th><th>坪単価</th><th>運転</th><th>道のり</th><th>物件名</th><th>所在地</th><th>駅</th><th>リンク</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>
@@ -196,10 +204,23 @@ function applyFavs() {
 }
 function toggleFav(pid, on) { const f = loadFavs(); if (on) f.add(pid); else f.delete(pid); saveFavs(f); applyFavs(); }
 function clearFavs() { if (!confirm('お気に入りを全て解除?')) return; localStorage.removeItem(KEY); applyFavs(); }
+const EXCL_KEY = 'kyotoLandExcluded_v1';
+function loadExcl() { try { return new Set(JSON.parse(localStorage.getItem(EXCL_KEY) || '[]')); } catch { return new Set(); } }
+function saveExcl(s) { localStorage.setItem(EXCL_KEY, JSON.stringify([...s])); }
+function applyExcl() {
+  const ex = loadExcl();
+  document.querySelectorAll('tr[data-pid]').forEach(tr => tr.classList.toggle('is-excluded', ex.has(tr.dataset.pid)));
+  document.getElementById('excl-count').textContent = ex.size;
+}
+function toggleExcl(pid) {
+  const ex = loadExcl();
+  if (ex.has(pid)) ex.delete(pid); else ex.add(pid);
+  saveExcl(ex); applyExcl();
+}
 function setView(m) {
-  document.body.classList.remove('view-20','view-25','view-30','view-fav','view-new');
+  document.body.classList.remove('view-20','view-25','view-30','view-fav','view-new','view-excl');
   if (m !== 'all') document.body.classList.add('view-'+m);
-  ['all','20','25','30','new','fav'].forEach(x => document.getElementById('tab-'+x).classList.toggle('active', m===x));
+  ['all','20','25','30','new','fav','excl'].forEach(x => { const b = document.getElementById('tab-'+x); if (b) b.classList.toggle('active', m===x); });
 }
 async function shareFavs() {
   const favs = [...loadFavs()];
@@ -245,7 +266,10 @@ function initSharedView() {
 document.addEventListener('change', e => {
   if (e.target.matches('.fav-cb')) toggleFav(e.target.dataset.pid, e.target.checked);
 });
-applyFavs();
+document.addEventListener('click', e => {
+  if (e.target.closest('.excl-btn')) toggleExcl(e.target.closest('.excl-btn').dataset.pid);
+});
+applyFavs(); applyExcl();
 if (location.hash.startsWith('#fav=')) {
   initSharedView();
 } else {
