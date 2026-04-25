@@ -14,7 +14,14 @@ const ORIGIN = { lat: 34.931217, lng: 135.740479, label: '伏見区下鳥羽南�
 const MIN_PRICE_MAN = 100;
 const MAX_PRICE_MAN = 2000;
 const MIN_AREA_M2 = 109;
-const NEW_DAYS = 3;
+const NEW_DAYS = 0; // 今日 (JST) のみ NEW
+
+// JST 今日の日付 (YYYY-MM-DD)
+function jstToday() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 3600 * 1000);
+  return jst.toISOString().slice(0, 10);
+}
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -586,8 +593,8 @@ async function main() {
 
   let knownIds = {};
   try { knownIds = JSON.parse(await fs.readFile(KNOWN_IDS_PATH, 'utf-8')); } catch { knownIds = {}; }
-  const today = new Date().toISOString().slice(0, 10);
-  const cutoff = new Date(Date.now() - NEW_DAYS * 86400000).toISOString().slice(0, 10);
+  const today = jstToday();
+  const cutoff = new Date(Date.now() + 9 * 3600 * 1000 - NEW_DAYS * 86400000).toISOString().slice(0, 10);
 
   console.log('→ SUUMO scraping (Node fetch)...');
   const suumo = await scrapeSuumo().catch(e => { console.error('SUUMO error:', e.message); return []; });
